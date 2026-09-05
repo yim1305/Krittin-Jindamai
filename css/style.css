@@ -372,6 +372,19 @@ section{ position:relative; z-index:1; }
   font-family:var(--sans); font-size:16px; color:var(--warm-granite);
   margin-top:20px; line-height:1.55; max-width:34ch;
 }
+.hero-honors{
+  display:flex; flex-wrap:wrap; gap:6px 8px;
+  margin:10px 0 0; padding:0; max-width:44ch;
+  list-style:none;
+  font-family:var(--mono); font-size:10px; line-height:1.35;
+  letter-spacing:.02em; text-transform:uppercase;
+  color:var(--pale-stone);
+}
+.hero-honors li{
+  padding:4px 7px;
+  border:1px solid var(--ash); border-radius:3px;
+  background:rgba(8,9,13,.38);
+}
 .hero-focus{
   font-family:var(--mono); font-size:12px; letter-spacing:-.02em; text-transform:uppercase;
   color:var(--graphite); display:flex; align-items:center; gap:8px; margin-top:12px;
@@ -989,14 +1002,15 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
    trade is that the text has to survive on open sky unaided, which is what the
    reserved corner above is for.
 
-   No heading. Krittin: "dont put 'index' just put the project names". The
-   aria-label is the only place the word survives, for a screen reader that
-   needs to know what the six links are. */
+   Originally no heading at all — Krittin: "dont put 'index' just put the
+   project names" — but he later asked for one back over each box
+   ("research" / "other projects"; see .proj-index-heading below), so the
+   aria-label is no longer the only place those words survive. */
 /* SPLIT INTO TWO BOXES — Krittin: "split up research and projects, put
    research top left and put all the projects bottom right". Both variants
    share this base rule and only differ in which corner they're pinned to
    (.proj-index-research / .proj-index-projects, right below); everything
-   else — size, no-heading, six-links-total across the two — stays one
+   else — size, six-links-total across the two — stays one
    system. The bottom-right corner is a NEW reservation, mirroring the
    top-left one described above; UNVERIFIED against the scene's Moon-side
    composition (crane, hopper, the homebound leg) the way the top-left corner
@@ -1010,6 +1024,16 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
   position:absolute; z-index:3;
   display:flex; flex-direction:column; align-items:flex-start; gap:27px;
   max-width:510px; text-align:left;
+}
+/* Krittin: "add a header saying research for the top left projects and add
+   bottom right saying other projects" — quiet mono label, same register as
+   .proj-year/.proj-program below rather than a second full .eyebrow (the
+   section already has one: "03 — projects & papers"). Inherits text-align
+   from whichever box it's in, so it flips to the right automatically inside
+   .proj-index-projects. */
+.proj-index-heading{
+  font-family:var(--mono); font-size:15px; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--warm-granite);
 }
 .proj-index-research{ left:0; top:6px; }
 /* Right-justified — Krittin: "make the bottom right indices right justified
@@ -1047,14 +1071,10 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
 }
 .proj-year.is-pending{ opacity:0; }
 .proj-index a.is-hot .proj-year, .proj-index a:hover .proj-year{ color:var(--warm-granite); }
-/* "In progress" pill, after the year — CBF, CMG and Lunar Hopper carry one
-   now that Lunar Hopper's year is the real 2026 rather than this text (see
-   the table in CLAUDE.md). Reuses .proj-status, the badge the old inert flat
-   grid used for the same words, rather than inventing a second status
-   style; scoped here instead of resizing the shared class so its 10px
-   default stays put wherever else it's used. Fades in with the year, off
-   the SAME typing-finished flag — see the .status addition in
-   initIndexTyping() (js/main.js). */
+/* "In progress" pill styling, kept for other uses of .proj-status (detail-page
+   h1 badges) — Krittin had it removed from these index rows themselves,
+   worried it reads as a reason not to click before a visitor has even opened
+   the project; the honest status still shows once they're on the page. */
 .proj-index .proj-status{
   font-size:15px; padding:3px 13px; margin-left:0;
   transition:opacity var(--t-mid) var(--ease-out);
@@ -1297,7 +1317,7 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
 }
 .desc{ font-size:16px; line-height:1.65; color:var(--pale-stone); }
 .desc p{ margin:0 0 20px; }
-.desc h3{ font-family:var(--mono); font-size:12px; text-transform:uppercase; color:var(--warm-granite); margin:32px 0 12px; padding-top:24px; border-top:1px solid var(--ash); }
+.desc h3{ clear:both; font-family:var(--mono); font-size:12px; text-transform:uppercase; color:var(--warm-granite); margin:32px 0 12px; padding-top:24px; border-top:1px solid var(--ash); }
 .desc h3:first-child{ margin-top:0; padding-top:0; border-top:none; }
 /* "my responsibility" lists on research pages — a plain dash marker rather
    than a browser bullet, same flat/no-decoration register as the rest of
@@ -1341,6 +1361,14 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
 .detail-figure--inset{ max-width:70%; }
 .detail-figure--inset.align-right{ margin-left:auto; }
 .detail-figure--inset.align-left{ margin-right:auto; }
+/* Actually wraps, unlike .detail-figure--inset above (which still runs as its
+   own full-width row, just narrower/pushed to one edge) — Krittin: "images
+   dont have to be under the text, put them to the left of the paragraph".
+   Text (a <p>, the next element) flows up alongside it instead of stacking
+   below; .desc h3's clear:both (above) stops a heading from doing the same. */
+.detail-figure--float-left{ float:left; width:38%; max-width:320px; margin:4px 28px 20px 0; }
+.detail-figure--float-left.align-right{ float:right; margin:4px 0 20px 28px; }
+.detail-figure--float-left .detail-figure-media{ min-height:0; }
 /* Unboxed figure — Krittin: "just put the preflight post flight and flight
    by itself without box and border". No `.detail-figure-media` wrapper at
    all, so the image is sized by its own aspect ratio instead of the fixed
@@ -1531,6 +1559,7 @@ footer{
   .detail-body{ grid-template-columns:1fr; }
   /* 70% of a column that's already narrow reads as cramped, not abstract. */
   .detail-figure--inset{ max-width:100%; margin-left:0; margin-right:0; }
+  .detail-figure--float-left{ float:none; width:100%; max-width:100%; margin:0 0 24px; }
   /* 3 (or more) columns of a lead gallery would be a strip of slivers on a
      phone; stack them like everything else at this width instead. */
   .detail-media-inner.detail-gallery{ grid-template-columns:1fr; }

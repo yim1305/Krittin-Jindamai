@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css?v=20260831g">
+  <link rel="stylesheet" href="../css/style.css?v=20260905b">
 
   <!-- In <head> and render-blocking, deliberately — see index.html. -->
   <script src="../js/main.js?v=20260831f"></script>
@@ -52,7 +52,7 @@
     <div class="detail-sub">Hybrid Control Moment Gyroscope Angular Momentum Desaturation Using Magnetorquers for CubeSats in Low Earth Orbit</div>
     <div class="detail-tags"><span class="tag">undergraduate honors thesis</span></div>
     <div class="detail-cta">
-      <a class="paper-btn" href="../assets/papers/thesis.pdf" target="_blank" rel="noopener">↓ read the paper</a>
+      <a class="paper-btn" href="../assets/papers/thesis.pdf" target="_blank" rel="noopener">↓ thesis first draft</a>
       <!-- Krittin: "Add github link to code" — no repo URL yet, so this
            stays href="#" like the hero's not-yet-provided links until he
            gives me one. -->
@@ -108,12 +108,20 @@
         <div class="fact-value">Dr. Norman G. Fitz-Coy</div>
       </div>
       <div class="fact-block">
+        <div class="fact-label">thesis committee</div>
+        <div class="fact-value">Dr. Norman G. Fitz-Coy (chair)<br>Dr. Richard C. Lind<br>Dr. Jonathan T. Brooks</div>
+      </div>
+      <div class="fact-block">
         <div class="fact-label">department</div>
         <div class="fact-value">Mechanical and Aerospace Engineering, University of Florida</div>
       </div>
       <div class="fact-block">
         <div class="fact-label">duration</div>
         <div class="fact-value">Summer 2026 – present</div>
+      </div>
+      <div class="fact-block">
+        <div class="fact-label">status</div>
+        <div class="fact-value">fixing first draft, oral defense in April 2027</div>
       </div>
       <div class="fact-block">
         <div class="fact-label">tools &amp; methods</div>
@@ -126,16 +134,46 @@
 
     <div class="desc" data-reveal>
       <h3>focus</h3>
-      <p>A Hybrid Control Moment Gyroscope (HCMG) combines the high-torque slewing capability of a Control Moment Gyroscope (CMG) with the precise pointing capability of a reaction wheel, making it well suited for CubeSats with limited space and actuator resources. However, external disturbances in low Earth orbit continuously introduce angular momentum into the spacecraft, which can accumulate and eventually saturate the HCMG, limiting its ability to control the spacecraft. This research investigates the use of magnetorquers (MTQs) to actively dump accumulated momentum while maintaining effective attitude control without interfering with the HCMG steering algorithm.</p>
+      <p>A CubeSat often needs both rapid retargeting and precise pointing, but reaction wheels give one and control moment gyroscopes (CMGs) give the other, and most CubeSats do not have room for separate actuators of each type. Patankar's Hybrid Control Moment Gyroscope (HCMG) solves this with a single cluster of four gimbaled flywheels that switch between CMG mode for slewing and locked-gimbal reaction wheel mode for fine pointing, but it was only validated with no external disturbance torques. In orbit those disturbances constantly feed the flywheels torque they have to reject, drifting their speeds away from nominal until one hits its limit and loses control authority, so this thesis tests whether magnetorquers (MTQs) can desaturate that drift without interfering with the CMG-mode steering algorithm.</p>
+
+      <h3>approach</h3>
+      <ul>
+        <li><strong>simulation</strong>: a full nonlinear 6DOF attitude and orbit simulation built in MATLAB for a 12U Earth observing CubeSat (230 by 240 by 360 mm) in a sun-synchronous low Earth orbit</li>
+        <li><strong>tracking controller</strong>: built an eigenaxis PD controller for nadir pointing, tracking a reference quaternion from the orbit's own local horizontal, local vertical (LVLH) frame. Feedback linearization cancels the satellite's gyroscopic coupling, and feedforward plus PD terms do the actual correcting</li>
+        <li><strong>steering algorithm</strong>: commanded torque maps to gimbal rate and flywheel acceleration through a Generalized Singularity Robust (GSR) inverse plus a null motion term. A plain Singularity Robust inverse gets stuck in gimbal lock; GSR's time varying error matrix breaks out of it, and paired with the null motion term (which also biases the gimbals toward a good reaction wheel configuration before the mode switch) the two clear both hyperbolic and elliptic internal singularities</li>
+        <li><strong>disturbances</strong>: aerodynamic drag, J2 perturbation, and gravity gradient torque, computed against a tilted dipole geomagnetic field model rotated into inertial coordinates over time</li>
+        <li><strong>desaturation</strong>: MTQ desaturation runs on the cross product law, a commanded dipole moment built from the excess flywheel momentum crossed with the local magnetic field. It only runs in RW mode, so it never fights the CMG-mode steering algorithm</li>
+        <li><strong>maneuver profile</strong>: rapid retargeting to nadir pointing in CMG mode, a 10 second cosine scheduled mode switch (the mode parameter running 1 to 0) into RW mode for precision pointing, then held for 15 orbits</li>
+        <li><strong>comparison</strong>: two identical runs, one with MTQ disabled and one enabled, isolating its effect on flywheel speed, excess momentum, and pointing accuracy</li>
+      </ul>
 
       <figure class="detail-figure detail-figure--inset align-left">
         <div class="detail-figure-media"><img loading="lazy" decoding="async" class="is-chart" src="../assets/images/projects/cmg-pyramid-configuration.png" alt="Four-CMG pyramid mounting, each wheel's spin, gimbal and output-torque axes labeled"></div>
-        <figcaption>four-CMG pyramid array — spin, gimbal and torque axes</figcaption>
+        <figcaption>four-CMG pyramid array, spin, gimbal and torque axes</figcaption>
       </figure>
 
-      <h3>my responsibility</h3>
+      <!-- Two placeholders, added at Krittin's request alongside the approach
+           rewrite: a control block diagram (tracker -> steering algorithm ->
+           HCMG/spacecraft dynamics, MTQ loop closing separately in RW mode)
+           and one open slot for whatever image he adds next. Real files only
+           — per CLAUDE.md, nothing here gets invented or auto-generated. -->
+      <figure class="detail-figure">
+        <div class="detail-figure-media">[ block diagram: eigenaxis tracking controller, GSR + null motion steering algorithm, HCMG/spacecraft dynamics, and the MTQ desaturation loop closing in RW mode ]</div>
+        <figcaption>[caption: control system block diagram]</figcaption>
+      </figure>
+
+      <figure class="detail-figure detail-figure--inset align-right">
+        <div class="detail-figure-media">[ image ]</div>
+        <figcaption>[caption]</figcaption>
+      </figure>
+
+      <h3>results</h3>
       <ul>
-        <li>Simulate nadir pointing satellite under disturbances in space while constantly escaping singularity configurations and dumping excess angular momentum</li>
+        <li>Without MTQ, excess angular momentum grows without bound over the full 15 orbit run, and flywheel acceleration never settles back to zero</li>
+        <li>With MTQ on, excess momentum stays bounded and flywheel speed converges back to its nominal operating point near 838 rad/s</li>
+        <li>Pointing held steady in both cases, zero steady state attitude and angular velocity error, so there's enough margin to run desaturation on a schedule instead of continuously and save power on a CubeSat's tight budget</li>
+        <li>MTQ torque output stayed three orders of magnitude below HCMG torque (micronewton meters versus millinewton meters) and never disturbed pointing</li>
+        <li>The cross product law's real limitation showed up directly in the simulation too: a dipole moment aligned with the local magnetic field produces zero torque, so desaturation authority rises and falls with where the satellite is in orbit, not just with actuator capability</li>
       </ul>
     </div>
   </div>

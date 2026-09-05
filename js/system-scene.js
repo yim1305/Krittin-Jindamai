@@ -1949,7 +1949,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     // at the limb rather than deep in the disc: its contact point is right on
     // the silhouette edge, so clearBody would be making a push decision on a
     // knife edge, and the label is already over open space anyway.
-    { text: "non holonomic cbf", href: "projects/ros-research.html", dx: 0.026, dy: -0.12, align: "center", avoidEarth: false, avoidMoon: true, desc: "Control Barrier Functions for Non Holonomic Robots Way Point Control Near Safe Set Barriers (University Scholars Program)", img: null },
+    { text: "nonholonomic cbf", href: "projects/ros-research.html", dx: 0.026, dy: -0.12, align: "center", avoidEarth: false, avoidMoon: true, desc: "Control Barrier Functions for Nonholonomic Robots Way Point Control Near Safe Set Barriers (University Scholars Program)", img: null },
     // Above the crane. Its home moved (see craneAnchor above) — recheck this
     // still clears the flight path's wrap. UNVERIFIED. avoidMoon off for the
     // same reason avoidEarth is off above.

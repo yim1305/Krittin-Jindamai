@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Non Holonomic Control Barrier Function — Krittin Jindamai</title>
+  <title>Nonholonomic Control Barrier Function — Krittin Jindamai</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css?v=20260831g">
+  <link rel="stylesheet" href="../css/style.css?v=20260905b">
 
   <!-- In <head> and render-blocking, deliberately — see index.html. -->
   <script src="../js/main.js?v=20260831f"></script>
@@ -37,15 +37,12 @@
 
   <div class="detail-header">
     <div class="eyebrow"><span class="dot"></span>research — 01</div>
-    <h1 class="detail-title">Non Holonomic Control Barrier Function</h1>
-    <div class="detail-sub">Control Barrier Functions for Non Holonomic Robots Way Point Control Near Safe Set Barriers</div>
-    <div class="detail-tags"><span class="tag">university scholars program</span></div>
+    <h1 class="detail-title">Nonholonomic Control Barrier Function</h1>
+    <div class="detail-sub">Control Barrier Functions for Nonholonomic Robots Way Point Control Near Safe Set Barriers</div>
+    <div class="detail-tags"><span class="tag">university scholars program</span><span class="tag">targeting CDC 2026</span></div>
     <div class="detail-cta">
-      <a class="paper-btn" href="../assets/papers/ros-research.pdf" target="_blank" rel="noopener">↓ read the paper</a>
-      <!-- Krittin: "Add github link to code" — no repo URL yet, so this
-           stays href="#" like the hero's not-yet-provided links until he
-           gives me one. -->
-      <a class="paper-btn" href="#" target="_blank" rel="noopener">↗ view code</a>
+      <a class="paper-btn" href="#" target="_blank" rel="noopener">paper coming soon</a>
+      <a class="paper-btn" href="https://github.com/yim1305/CBF-Code" target="_blank" rel="noopener">↗ view code</a>
     </div>
   </div>
 
@@ -64,7 +61,11 @@
     <div class="facts" data-reveal>
       <div class="fact-block">
         <div class="fact-label">PI</div>
-        <div class="fact-value">Dr. Rushikesh Kamalapurkar</div>
+        <div class="fact-value">Dr. Rushikesh Kamalapurkar<br>Dr. Warren E. Dixon</div>
+      </div>
+      <div class="fact-block">
+        <div class="fact-label">supervisor</div>
+        <div class="fact-value">Keith Currier (Ph.D. student)</div>
       </div>
       <div class="fact-block">
         <div class="fact-label">department</div>
@@ -73,6 +74,10 @@
       <div class="fact-block">
         <div class="fact-label">duration</div>
         <div class="fact-value">Spring 2026 – present</div>
+      </div>
+      <div class="fact-block">
+        <div class="fact-label">status</div>
+        <div class="fact-value">in progress</div>
       </div>
       <div class="fact-block">
         <div class="fact-label">tools &amp; methods</div>
@@ -86,18 +91,23 @@
 
     <div class="desc" data-reveal>
       <h3>focus</h3>
-      <p>Conventional distance-based Control Barrier Functions (CBFs) may be overly conservative for nonholonomic robots because they primarily consider positional safety without fully accounting for the robot’s heading and angular dynamics. This limitation becomes particularly significant during tight turns, where the robot must turn before it can follow the desired safe direction. This research investigates incorporating the robot’s heading and angular motion into the CBF formulation to enable tighter and safer maneuvering while maintaining smooth and accurate trajectory tracking.</p>
+      <p>A standard Control Barrier Function assumes a fully-actuated system. A differential-drive robot’s angular velocity has no instantaneous effect on a barrier evaluated at its own centroid, so the constraint has no sensitivity to ω and a CBF-QP safety filter can brake the robot in front of a wall but can’t turn it away. This work resolves that by evaluating the barrier at a look-ahead point offset from the robot along its heading, a standard feedback-linearization technique. It makes the barrier’s time derivative affine in the full body-frame input u = [v, ω], giving the filter direct authority over steering instead of just speed.</p>
 
-      <h3>my responsibility</h3>
+      <h3>approach</h3>
       <ul>
-        <li>Simulate waypoint tracking controller and test the proposed idea on ROS2 and Gazebo system</li>
-        <li>Write the paper and present at Spring 2027 Symposium</li>
+        <li><strong>safe set</strong>: the lab modeled as a rectangular region in Gazebo, expressed as four independent half-plane barriers built from the room’s real interior dimensions</li>
+        <li><strong>safety filter</strong>: a minimally-invasive QP, min‖u − u_nom‖² subject to Ḃ ≤ −k·B at each wall, solved every control cycle in cvxpy/OSQP for the closest-to-nominal command that stays inside the safe set</li>
+        <li><strong>tracking controller</strong>: a feedforward + look-ahead-point feedback law driving a nominal, pre-filter command along a reference path, so the QP had a real wall-approaching input to intervene on</li>
+        <li><strong>simulation</strong>: TurtleBot3 Burger and lab geometry in Gazebo Harmonic (ROS 2 Humble), with the full tracker → CBF-QP filter → actuation pipeline running as ROS 2 nodes in closed loop</li>
       </ul>
 
       <figure class="detail-figure">
         <div class="detail-figure-media"><img loading="lazy" decoding="async" class="is-chart" src="../assets/images/projects/cbf-2.png" alt="Top-down trajectory plot — robot path spiraling into the waypoint, heading vector marked in red"></div>
         <figcaption>waypoint approach — heading-aware trajectory</figcaption>
       </figure>
+
+      <h3>what’s next</h3>
+      <p>This work is being extended further, with plans to publish at the Conference on Decision and Control (CDC) and the UF Journal of Undergraduate Research. More information coming soon.</p>
     </div>
   </div>
 
