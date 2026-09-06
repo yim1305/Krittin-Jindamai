@@ -3,17 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Project Navigator — Krittin Jindamai</title>
+  <title>Project Communigator — Krittin Jindamai</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css?v=20260906c">
+  <link rel="stylesheet" href="../css/style.css?v=20260906n">
 
   <!-- In <head> and render-blocking, deliberately — see index.html. -->
   <script src="../js/main.js?v=20260906c"></script>
+  <script src="../js/communigator-charts.js?v=20260906a" defer></script>
 </head>
-<body>
+<body class="communigator-page">
 
   <div class="nebula" id="nebula"></div>
 
@@ -37,43 +38,27 @@
 
   <div class="detail-header">
     <div class="eyebrow"><span class="dot"></span>project — 01</div>
-    <h1 class="detail-title">Project Navigator</h1>
-    <div class="detail-sub">Drop It Like It’s Hot (Payload) for Project Navigator</div>
+    <h1 class="detail-title">Project Communigator</h1>
+    <div class="detail-sub">Payload Flight and Recovery Software for NASA USLI — Flight Computer, Sensor Fusion, and Telemetry Transmission</div>
     <div class="detail-cta">
-      <a class="paper-btn" href="https://github.com/yim1305/Project-Navigator-Software" target="_blank" rel="noopener">↗ view code</a>
+      <a class="paper-btn" href="https://github.com/yim1305/Project-Communigator-Software" target="_blank" rel="noopener">↗ view code</a>
     </div>
   </div>
 
-  <!-- Krittin: "the retention system make it it's own image" — the payload
-       and software-design diagrams that used to share this gallery have
-       both moved out (see below), so this is back to a single lead shot,
-       same as `.detail-media-inner` on every other project page. Real
-       photo, default crop-to-fill. -->
-  <div class="detail-media">
-    <div class="detail-media-inner">
-      <img loading="lazy" decoding="async" src="../assets/images/projects/navigator-retention-system.png" alt="Payload nested in the rocket's retention system tube">
+  <div class="detail-body communigator-body">
+    <!-- The team photo and architecture share the lead row before the written
+         project details. -->
+    <div class="communigator-top-visuals" data-reveal>
+      <figure class="detail-figure detail-figure--plain communigator-team">
+        <img loading="lazy" decoding="async" src="../assets/images/projects/Communigator%20Team.jpeg" alt="Project Communigator team">
+        <figcaption>team</figcaption>
+      </figure>
+      <figure class="detail-figure detail-figure--plain communigator-architecture">
+        <img loading="lazy" decoding="async" src="../assets/images/projects/navigator-software-design.png" alt="Payload software architecture diagram">
+        <figcaption>software architecture</figcaption>
+      </figure>
     </div>
-  </div>
 
-  <!-- Krittin: "add the navigator model" (navigator.png already had no
-       background, same Higgsfield batch as terragator.png) — "make rocket
-       2x bigger" (.is-xl) — "remove logo from the payload photo and remove
-       background and put that next to rocket" (background/logo removed
-       locally with System.Drawing, Higgsfield's remove_background being out
-       of free credits; see assets/images/projects/README.md). Same
-       .cutout-row treatment TerraGator's rocket and ACS stills get. -->
-  <div class="cutout-row">
-    <figure class="cutout is-xl">
-      <img loading="lazy" decoding="async" src="../assets/images/projects/navigator.png" alt="Project Navigator, finished rocket">
-      <figcaption>finished rocket</figcaption>
-    </figure>
-    <figure class="cutout">
-      <img loading="lazy" decoding="async" src="../assets/images/projects/navigator-payload.png" alt="Payload deployment illustration, background removed — parachute descent and landed configuration">
-      <figcaption>payload</figcaption>
-    </figure>
-  </div>
-
-  <div class="detail-body">
     <div class="facts" data-reveal>
       <div class="fact-block">
         <div class="fact-label">timeframe</div>
@@ -81,7 +66,11 @@
       </div>
       <div class="fact-block">
         <div class="fact-label">role</div>
-        <div class="fact-value">Payload Software Associate Lead</div>
+        <div class="fact-value">Payload Software Lead</div>
+      </div>
+      <div class="fact-block">
+        <div class="fact-label">supervisor</div>
+        <div class="fact-value">Dr. Sean R. Niemi</div>
       </div>
       <div class="fact-block">
         <div class="fact-label">tools &amp; methods</div>
@@ -89,6 +78,8 @@
           <div class="tag">C++</div>
           <div class="tag">I2C</div>
           <div class="tag">SPI</div>
+          <div class="tag">Multithreading</div>
+          <div class="tag">Kalman Filter</div>
         </div>
       </div>
       <div class="fact-block">
@@ -98,27 +89,17 @@
     </div>
 
     <div class="desc" data-reveal>
-      <h3>about</h3>
-      <ul>
-        <li>Payload collects data during rocket descent — max velocity, landing velocity, landing acceleration, max apogee, landing location, landing site temperature, and landing orientation</li>
-        <li>Kalman Filter for rocket state estimation</li>
-        <li>Multithreading for faster computing time</li>
-        <li>Retention system opens up the rocket airframe and drops the payload on radio command</li>
-        <li>Once the payload lands, the antenna pops up and starts transmitting the collected data to NASA over the 2M radio band</li>
-      </ul>
+      <h3>focus:</h3>
+      <p>Develop an embedded flight computer for a NASA USLI payload (HOT Pocket) that logs seven data points (apogee, max velocity, landing velocity, peak G, landing temperature, GPS, and capsule orientation) and transmits them after landing. The mission: detect liftoff and log flight data, receive radio command to release the payload via servo retention system during descent, land payload separately under parachute ahead of the rocket, and transmit final telemetry over a 2M band radio.</p>
 
-      <!-- Krittin: "just dont match the style just attach the software
-           architecture image as is just have its own box" — back to the
-           original image, unmodified, in the standard .detail-figure-media
-           box (no SVG redesign). NEEDS THE FILE: the original
-           navigator-software-design.png was deleted while building the SVG
-           version and is not recoverable (no git install on this machine to
-           restore it, and it wasn't in the Recycle Bin) — Krittin needs to
-           re-supply it as navigator-software-design.png here. -->
-      <figure class="detail-figure">
-        <div class="detail-figure-media"><img loading="lazy" decoding="async" class="is-chart" src="../assets/images/projects/navigator-software-design.png" alt="Payload software architecture diagram"></div>
-        <figcaption>software architecture</figcaption>
-      </figure>
+      <h3>approach:</h3>
+      <ul>
+        <li><strong>retention system</strong>: GPIO-controlled MOSFET for servo latch that holds crew capsule during powered flight, ejects on radio command during descent</li>
+        <li><strong>launch detection and data collection</strong>: I2C/SPI drivers for IMU, barometric sensor with calibration registers, voltage monitor, LoRa receiver. Launch detection requires sustained acceleration/altitude across multiple samples to avoid false positives</li>
+        <li><strong>sensor fusion</strong>: 2-state Kalman filter smoothing barometric altitude. The background threads compute filtered position, velocity, and G-forces; live crew survival percentage computed continuously</li>
+        <li><strong>landing detection</strong>: dual-sensor logic uses barometer (altitude stable near ground) and IMU (1G, motionless) to confirm landing. Then deploy antenna servo for transmission</li>
+        <li><strong>telemetry transmission</strong>: packs seven data points into an APRS package; transmits over LoRa 2M radio with 5 minutes acknowledgment listen-back</li>
+      </ul>
 
       <!-- Krittin: "the preflight post flight and flight by itself without
            box and border" — plain images now, no .detail-figure-media
@@ -126,6 +107,14 @@
            (Swamp Launch logging, thread activity, launch/landing detection,
            final telemetry), not simulation data. -->
       <h3>results</h3>
+      <div class="communigator-flight-charts" data-flight-charts>
+        <figure class="cmg-chart-box" data-flight-chart="altitude">
+          <figcaption>filtered altitude vs. time</figcaption>
+        </figure>
+        <figure class="cmg-chart-box" data-flight-chart="velocity">
+          <figcaption>filtered velocity vs. time</figcaption>
+        </figure>
+      </div>
       <figure class="detail-figure detail-figure--plain detail-figure--inset align-left">
         <img loading="lazy" decoding="async" src="../assets/images/projects/navigator-preflight.png" alt="Pre-flight phase log — sensor initialization and launch detection">
         <figcaption>pre-flight — sensor init and launch detection</figcaption>
@@ -137,6 +126,23 @@
       <figure class="detail-figure detail-figure--plain detail-figure--inset align-right">
         <img loading="lazy" decoding="async" src="../assets/images/projects/navigator-postflight.png" alt="Post-flight phase log — final telemetry: temperature, apogee, battery, orientation">
         <figcaption>post-flight — final telemetry readout</figcaption>
+      </figure>
+    </div>
+
+    <!-- Both transparent models share the right rail, with payload directly
+         below the full rocket as one vertical assembly. -->
+    <div class="communigator-model-rail" data-reveal>
+      <figure class="cutout is-xl communigator-rocket">
+        <img loading="lazy" decoding="async" src="../assets/images/projects/navigator.png" alt="Project Communigator, finished rocket">
+        <figcaption>rocket</figcaption>
+      </figure>
+      <figure class="cutout communigator-payload">
+        <img loading="lazy" decoding="async" src="../assets/images/projects/navigator-payload.png" alt="Payload deployment illustration, background removed — parachute descent and landed configuration">
+        <figcaption>payload</figcaption>
+      </figure>
+      <figure class="detail-figure detail-figure--plain communigator-retention">
+        <img loading="lazy" decoding="async" src="../assets/images/projects/navigator-retention-system.png" alt="Payload nested in the rocket's retention system tube">
+        <figcaption>retention system</figcaption>
       </figure>
     </div>
   </div>

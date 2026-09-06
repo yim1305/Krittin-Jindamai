@@ -12,7 +12,7 @@ different context this README used to not distinguish:
 `.webp` ones are background-removed via Higgsfield's `remove_background`
 (the site's 2 free-plan credits for this session, now at 0); `terragator.png`
 already had no background from an earlier batch. `projects/rocket-software.html`
-(Navigator) loads `navigator.png` (also already background-free),
+(Communigator) loads `navigator.png` (also already background-free),
 `navigator-payload.png` (background AND a team-logo badge removed locally
 with PowerShell + .NET `System.Drawing` — chroma-key on the near-white pixels
 plus a hand-erased rectangle over the logo — once Higgsfield's credits ran

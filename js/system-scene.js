@@ -1,7 +1,7 @@
 // ==========================================================================
 // Projects — the Earth/Moon system.
 //
-// One FIXED 3D scene holding all six projects at their designated places,
+// One FIXED 3D scene holding all eight projects at their designated places,
 // replacing the old rotating-Moon scene (js/moon-scene.js, kept on disk as
 // the revert path but no longer imported). Krittin's brief, and his sketch:
 // Earth cropped by the bottom-left corner, the Moon fully visible on the
@@ -10,7 +10,7 @@
 //   CBF TurtleBot ............ standing on Earth's surface
 //   Hybrid CMG satellite ..... between the flight path's two legs
 //   Project TerraGator ....... Space Shuttle, on the outbound climb
-//   Project Navigator ........ SLS, on the way home
+//   Project Communigator ...... SLS, on the way home
 //   Sky Crane ................ landed on the Moon's surface
 //   Lunar Hopper ............. the hop arc off the Moon's south pole
 //
@@ -172,7 +172,9 @@ const CRANE_SCALE = 0.72; // lander ~76px across
 // shuttle orbiter's own model is much shorter than SLS's stack, so at equal
 // scale it read as the smaller vehicle.
 const TERRAGATOR_SCALE = 0.896; // 2x
-const NAVIGATOR_SCALE = 0.582; // 1.3x
+const COMMUNIGATOR_SCALE = 0.582; // 1.3x
+const DECORATIVE_SAT_SCALE_A = 0.34;
+const DECORATIVE_SAT_SCALE_B = 0.29;
 
 // The scene bakes both Earth and Moon on approach. 768 is sufficient for the
 // posterised surfaces; high-density laptops step down further at init time.
@@ -188,9 +190,8 @@ const BAKE_W = 768;
 //   earth    frame fraction of Earth's CENTRE. y > 1 means below the frame,
 //            i.e. deliberately cropped by the bottom edge.
 //   moon     frame fraction of the Moon's centre. Always fully inside.
-//   cmg      frame fraction of the CMG cubesat, which has no orbit to ride any
-//            more and is placed straight against the frame. Sits between the
-//            flight path's two open legs, between the two bodies.
+//   cmg      frame fraction of the CMG cubesat, which has no orbit to ride.
+//   fit      extra camera margin that keeps the shifted Moon/models uncut.
 //
 // Everything else is derived: the rockets ride the flight path, and the two
 // surface models are placed by direction inside their body's tilted group.
@@ -208,45 +209,25 @@ const BAKE_W = 768;
 // SECTION-visible height, which is what keeps Earth at the same size and in
 // the same place while more of it becomes visible.
 //
-// The Moon's y in each was nudged down a few points ("move moon down just a
-// tiny bit"), which also bought headroom above it for the flight path's entry
-// and for Sky Crane's label.
+// The Moon now sits farther toward the upper-right in every preset. Its surface
+// models move with moonSpin, the flight path is rebuilt from its new position,
+// and the rockets parked on that path follow automatically.
 //
-// `cmg` keeps the midpoint's fx but is RAISED off the Earth-Moon line —
-// Krittin: the middle "is good, but also need to be equally spaced between the
-// 2 rockets (rn its too low and too close to the SLS)".
-//
-// He was right, and the imbalance was much worse than it looked in world
-// coordinates: at the plain midpoint the satellite was 449px from TerraGator
-// and 175px from Navigator on a 1440x740 canvas. WORLD distance said 1.35 vs
-// 1.16, which is nearly balanced — the discrepancy is Navigator sitting ~0.76
-// units BEHIND the Earth/Moon plane, so it is far away in 3D and close in
-// projection. **Judge this in screen space; world distance will mislead you.**
-//
-// Raising fy to 0.558 on the wide preset lands 286px vs 285px — properly
-// equidistant. That works out to 0.484 world units up, which is almost exactly
-// one of the satellite's own apparent heights (he estimated one and a half).
-//
-// The two narrower presets CANNOT reach equidistant: fx is fixed at the
-// midpoint and moving up walks the satellite straight into the Moon, which in
-// those layouts sits much closer relative to the frame. Their values are the
-// highest that still keep ~0.15 world units of clearance past the Moon's limb
-// ring, so they improve the balance without colliding rather than solving it.
-// Going further would mean giving up the midpoint fx as well.
+// The CMG satellite shifts with the Moon rather than remaining at its former
+// midpoint, preserving the visual relationship among the upper models.
 const LAYOUTS = [
   // Wide desktop band. Earth 46% of frame height, centred below the frame at
   // x = 6%; Moon 37% of frame height, spanning x 52-90%, y 7-81%.
-  // cmg: 286px to TerraGator, 285px to Navigator. Clears Earth by 0.52 world
-  // and the Moon by 0.29.
-  { min: 1.46, fw: 4.23, fh: 2.18, earth: [0.06, 1.12], moon: [0.71, 0.44], cmg: [0.385, 0.558] },
+  // Two smaller satellites occupy the open sky below the two index regions.
+  { min: 1.46, fw: 4.23, fh: 2.18, fit: 1.20, earth: [-0.04, 1.12], moon: [0.77, 0.325], cmg: [0.43, 0.49] },
   // Squarish — small laptop windows, tablets in landscape. Moon-limited: 394px
   // vs 102px, with 0.15 world of clearance left past the Moon.
-  { min: 0.83, fw: 3.3, fh: 2.9, earth: [0.13, 1.07], moon: [0.69, 0.34], cmg: [0.41, 0.636] },
+  { min: 0.83, fw: 3.3, fh: 2.9, fit: 1.28, earth: [0.06, 1.07], moon: [0.73, 0.235], cmg: [0.445, 0.56] },
   // Portrait. The Moon stacks ABOVE Earth rather than beside it; both bodies
   // shrink to a quarter of the frame height so the labels have room. The index
   // is not overlaid here at all — it flows under the canvas. Moon-limited too:
   // 201px vs 50px at 0.15 clearance.
-  { min: 0, fw: 2.2, fh: 4.0, earth: [0.32, 1.0], moon: [0.6, 0.28], cmg: [0.46, 0.586] },
+  { min: 0, fw: 2.2, fh: 4.0, fit: 1.52, earth: [0.32, 1.0], moon: [0.62, 0.12], cmg: [0.475, 0.455] },
 ];
 
 // --------------------------------------------------------------------------
@@ -318,6 +299,9 @@ const WRAP_TILT_EARTH = 60 * DEG;
 // see OUTBOUND_CONTROL below.
 const LEAD_EARTH = 0.3;
 const LEAD_MOON = 0.42;
+// Extend both open ends beyond their old endpoints by a small fraction of the
+// Earth-Moon separation, keeping the same tangent and line weight.
+const FLIGHT_END_EXTENSION = 0.06;
 
 // The outbound leg's two control points, as frame fractions — replacing the
 // tangent-derived ones now that the leg no longer has to join a drawn wrap
@@ -343,12 +327,8 @@ const OUTBOUND_CONTROL = [
 // which should land it in the gap by the index rather than at either end.
 // UNVERIFIED.
 const TERRAGATOR_T = 0.5;
-// Navigator is untouched by any of this — its leg and position were not part
-// of the complaint. Came down from 0.62 originally, because the return leg
-// ends inside Earth rather than beside it and 0.62 would park the rocket
-// below the section's visible band, in among the Awards cards. 0.28 puts it
-// at about (50%, 83%).
-const NAVIGATOR_T = 0.28;
+// Midpoint of the Moon-to-Earth return leg, remaining on the same curve.
+const COMMUNIGATOR_T = 0.5;
 
 // How far each vehicle is rolled off exactly-broadside, about its own long
 // axis. See the long note on park(): 0 would face each model's identifying
@@ -356,7 +336,7 @@ const NAVIGATOR_T = 0.28;
 // pointing straight at you (invisible), and for SLS hides how the boosters
 // stand off the core. These tip both into a three-quarter view.
 const TERRAGATOR_ROLL = 36 * DEG;
-const NAVIGATOR_ROLL = 26 * DEG;
+const COMMUNIGATOR_ROLL = 26 * DEG;
 
 // Dash pitch for the Lunar Hopper's arc, which is the only dashed line left in
 // the scene. The flight path is solid — Krittin: "make rocket trajectory a
@@ -858,8 +838,10 @@ const FILL_OPACITY = 1;
 // survives under colour. UNVERIFIED — chosen without being able to see the
 // scene rendered; treat as a first pass to react to, not a final answer.
 const TERRAGATOR_TINT = 0xd6cdbe; // pale warm ivory — shuttle thermal tile
-const NAVIGATOR_TINT = 0x9db3c2; // cool ice blue — contrasts TerraGator's warmth
+const COMMUNIGATOR_TINT = 0x9db3c2; // cool ice blue — contrasts TerraGator's warmth
 const CMG_TINT = 0xc9b46a; // muted gold — satellite MLI foil
+const SATELLITE_TINT_A = 0xb9a56a; // a slightly darker gold
+const SATELLITE_TINT_B = 0xd4c589; // a slightly lighter champagne
 const CRANE_TINT = 0xa08599; // dusty mauve — Mars regolith, without reading as orange
 const ROBOT_TINT = 0x7fa0a3; // slate teal — robotics/electronics
 
@@ -1086,7 +1068,7 @@ function flatCurve(curve, samples, opts) {
 // park() now rolls each model about its own long axis to face the camera, and
 // each is built with its identifying features in the local XY plane (the
 // plane that roll points at the viewer). See park(), and TERRAGATOR_ROLL /
-// NAVIGATOR_ROLL for the offset off exactly-broadside.
+// COMMUNIGATOR_ROLL for the offset off exactly-broadside.
 
 // Project TerraGator — the Space Shuttle orbiter. Nose-up along +Y like every
 // other model here, so it sits on the outbound climb without special-casing.
@@ -1152,7 +1134,7 @@ function buildTerraGatorShuttle() {
 // side, an upper stage and Orion stacked on top, and the launch abort tower's
 // spike above that. The booster pair sits in the local XY plane so the roll
 // keeps both of them visible rather than hiding one behind the core.
-function buildNavigatorSLS() {
+function buildCommunigatorSLS() {
   const CORE_R = 0.06;
   const SRB_R = 0.028;
   const geos = [];
@@ -1203,7 +1185,7 @@ function buildNavigatorSLS() {
   );
   bell.dispose();
 
-  return mergedPart(geos, EDGE_CLEAN, NAVIGATOR_TINT);
+  return mergedPart(geos, EDGE_CLEAN, COMMUNIGATOR_TINT);
 }
 
 // The Hybrid CMG project's satellite — the SAME satellite the hero scene
@@ -1226,8 +1208,15 @@ const SAT_BUS = 0.3;
 const SAT_PANEL_W = 0.3;
 const SAT_PANEL_H = 0.19;
 const SAT_PANEL_X = SAT_BUS / 2 + 0.04 + SAT_PANEL_W / 2;
+const SAT_MODEL_W = 2 * (SAT_PANEL_X + SAT_PANEL_W / 2);
+// Local bottom of the bus to the antenna tip; used to move THEOS-3A down by
+// exactly half of its own nominal model height.
+const SAT_MODEL_H = SAT_BUS + 0.17;
+// Nudge THEOS-3A toward the right-hand project index while preserving its
+// vertical relationship to Lunar Hopper.
+const THEOS_RIGHT_OFFSET = 0.42;
 
-function buildSatellite() {
+function buildSatellite(tint = CMG_TINT) {
   const geos = [new THREE.BoxGeometry(SAT_BUS, SAT_BUS, SAT_BUS)];
 
   // Solar arrays. Thin BOXES rather than the hero's flat planes: a plane's
@@ -1245,7 +1234,7 @@ function buildSatellite() {
   tip.translate(0, SAT_BUS / 2 + 0.17, 0);
   geos.push(tip);
 
-  const group = mergedPart(geos, EDGE_CLEAN, CMG_TINT);
+  const group = mergedPart(geos, EDGE_CLEAN, tint);
 
   // Antenna boom + solar cell dividers, as lines. The dividers are two per
   // array — the detail that makes a rectangle read as a solar panel — and
@@ -1730,9 +1719,21 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     const ya = new THREE.Vector3().crossVectors(za, xa).normalize();
     cmgSat.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xa, ya, za));
   }
-  // Hung off the scene root, not off earthGroup: it is placed against the
-  // frame now, not relative to a body.
-  scene.add(cmgSat);
+  // Two smaller satellites fill the open sky created by moving the Moon up
+  // and right. They are decorative scene elements, so they do not add project
+  // labels, hover targets, or navigation entries.
+  const decorativeSatA = buildSatellite(SATELLITE_TINT_A);
+  decorativeSatA.scale.setScalar(DECORATIVE_SAT_SCALE_A);
+  decorativeSatA.quaternion.copy(cmgSat.quaternion);
+  decorativeSatA.rotateZ(-18 * DEG);
+
+  const decorativeSatB = buildSatellite(SATELLITE_TINT_B);
+  decorativeSatB.scale.setScalar(DECORATIVE_SAT_SCALE_B);
+  decorativeSatB.quaternion.copy(cmgSat.quaternion);
+  decorativeSatB.rotateZ(24 * DEG);
+
+  // All three are frame-positioned rather than parented to a body.
+  scene.add(cmgSat, decorativeSatA, decorativeSatB);
 
   // ---- Moon --------------------------------------------------------------
   // Same three-group structure as Earth. Sky Crane and the Lunar Hopper arc
@@ -1803,11 +1804,11 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // window.navigator for the whole of this function.
   const terragatorRocket = buildTerraGatorShuttle();
   terragatorRocket.scale.setScalar(TERRAGATOR_SCALE);
-  const navigatorRocket = buildNavigatorSLS();
-  navigatorRocket.scale.setScalar(NAVIGATOR_SCALE);
+  const communigatorRocket = buildCommunigatorSLS();
+  communigatorRocket.scale.setScalar(COMMUNIGATOR_SCALE);
   const flightPath = new THREE.Group();
 
-  scene.add(earthGroup, moonGroup, flightPath, terragatorRocket, navigatorRocket);
+  scene.add(earthGroup, moonGroup, flightPath, terragatorRocket, communigatorRocket);
 
   // ---- hover -------------------------------------------------------------
   //
@@ -1824,7 +1825,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // side index are both hover sources for the same highlight; see PROJECTS.
   //
   // Each entry owns an `apply(k)` closure instead of a shared shape, because
-  // the six objects do not light the same way: five are solid models with
+  // the eight objects do not light the same way: seven are solid models with
   // fill + edge materials, and the Lunar Hopper is a line with no model at all
   // and has to thicken instead.
   const hoverables = [];
@@ -1881,7 +1882,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     });
   }
 
-  // ---- the six projects ---------------------------------------------------
+  // ---- the eight projects -------------------------------------------------
   //
   // Each row ties together the three things that represent one project: the 3D
   // object, its floating text label, and its line in the .proj-index list.
@@ -1922,7 +1923,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // They therefore scale with the canvas rather than being fixed pixels,
   // which is the same reason every other offset here is a fraction.
   // `desc`/`img` feed the hover preview panel (.proj-info) — see
-  // updateInfoPanel() below. None of the six have a real SUMMARY yet (a
+  // updateInfoPanel() below. None of the eight have a real SUMMARY yet (a
   // sentence written for this card specifically would be fabricating one —
   // CLAUDE.md: never fabricate a project description), so `desc` is each
   // project's own real title/subtitle instead, already written and real
@@ -1938,7 +1939,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     { text: "terragator", href: "projects/rocket-airbrake.html", dx: 0.065, dy: 0.055, align: "center", avoidEarth: true, avoidMoon: true, desc: "Apogee Control System for Project TerraGator", img: null },
     // Below SLS on the way home, on open sky — Earth's disc never reaches
     // this far right.
-    { text: "navigator", href: "projects/rocket-software.html", dx: 0.039, dy: 0.055, align: "center", avoidEarth: true, avoidMoon: true, desc: "Drop It Like It’s Hot (Payload) for Project Navigator", img: null },
+    { text: "communigator", href: "projects/rocket-software.html", dx: 0.055, dy: 0.105, align: "center", avoidEarth: true, avoidMoon: true, desc: "Drop It Like It’s Hot (Payload) for Project Communigator", img: null },
     // To the RIGHT of the satellite and level with it. Now that it sits
     // between the two legs rather than by the index, check this still clears
     // the outbound leg above and the homebound leg below — UNVERIFIED. Note
@@ -1960,22 +1961,28 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     // Below the hop's apex, which already sits past the Moon's lower limb.
     // Same situation as Sky Crane — no real subtitle exists yet.
     { text: "lunar hopper", href: "projects/senior-design-project.html", dx: 0, dy: 0.055, align: "center", avoidEarth: true, avoidMoon: false, desc: "Lunar Hopper", img: null },
+    // The darker added satellite, midway between CBF and TerraGator.
+    { text: "bdot detumbling", href: "projects/bdot-detumbling.html", dx: 0, dy: -0.065, align: "center", avoidEarth: true, avoidMoon: true, desc: "B-Dot Control Detumbling", img: null },
+    // The lighter added satellite, below Lunar Hopper.
+    { text: "theos3a", href: "projects/theos3a.html", dx: 0, dy: 0.025, align: "center", avoidEarth: true, avoidMoon: true, desc: "THEOS-3A Structural Analysis", img: null },
   ];
 
   // The baseScale here MUST match what each model was actually built at above
   // — registerModel's hover swell is `baseScale * (1 + 0.34k)`, so a stale
   // value silently resizes the model the first time it is hovered.
   registerModel(terragatorRocket, terragatorRocket, PROJECTS[0].href, TERRAGATOR_SCALE);
-  registerModel(navigatorRocket, navigatorRocket, PROJECTS[1].href, NAVIGATOR_SCALE);
+  registerModel(communigatorRocket, communigatorRocket, PROJECTS[1].href, COMMUNIGATOR_SCALE);
   registerModel(cmgSat, cmgSat, PROJECTS[2].href, CMG_SCALE);
   registerModel(robot, robot, PROJECTS[3].href, ROBOT_SCALE);
   registerModel(crane, crane, PROJECTS[4].href, CRANE_SCALE);
   registerLine(hopLine, PROJECTS[5].href, HOP_WIDTH, HOP_OPACITY);
+  registerModel(decorativeSatA, decorativeSatA, PROJECTS[6].href, DECORATIVE_SAT_SCALE_A);
+  registerModel(decorativeSatB, decorativeSatB, PROJECTS[7].href, DECORATIVE_SAT_SCALE_B);
 
   // The object each label tracks, in the same order as PROJECTS. The two
   // surface-mounted ones track their ANCHOR rather than the model itself, so
   // the label does not creep when the model scales up under hover.
-  const LABEL_ANCHORS = [terragatorRocket, navigatorRocket, cmgSat, robotAnchor, craneAnchor, hopMarker];
+  const LABEL_ANCHORS = [terragatorRocket, communigatorRocket, cmgSat, robotAnchor, craneAnchor, hopMarker, decorativeSatA, decorativeSatB];
 
   PROJECTS.forEach((p, i) => {
     p.hoverable = hoverables[i];
@@ -2195,7 +2202,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
   }
 
   // Only re-raycast when the pointer has actually moved. The render loop runs
-  // continuously for the clouds, and raycasting six merged models on every one
+  // continuously for the clouds, and raycasting eight project objects on every one
   // of those frames would be pure waste for a result that cannot have changed.
   function updateHover() {
     if (!pointerMoved) return;
@@ -2250,6 +2257,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // The section-visible height, which is what labels are kept inside — the
   // rest of the canvas is behind the next section.
   let viewDesignH = 0;
+  let viewBottomNdcY = -1;
   let fade = REDUCED ? 1 : 0;
   // Rebuilt by buildFlight() whenever the layout preset changes; the arrival
   // reads them to fly the rockets in along their own legs.
@@ -2258,6 +2266,9 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // The cubesat's resting world position, resolved from the active preset's
   // `cmg` frame fraction by applyLayout. It has no orbit to sit on any more.
   const cmgHome = new THREE.Vector3();
+  const cbfModelWorld = new THREE.Vector3();
+  const terragatorNdc = new THREE.Vector3();
+  const hopperWorld = new THREE.Vector3();
 
   // Earth and Moon's on-screen circle (centre + pixel radius, at the limb
   // ring's radius), resolved once per resize — the camera never moves, so
@@ -2278,6 +2289,13 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
 
   function layoutFor(aspect) {
     return LAYOUTS.find((l) => aspect >= l.min) || LAYOUTS[LAYOUTS.length - 1];
+  }
+
+  // Exactly one fifth of the Moon's diameter, expressed as a frame fraction.
+  // Applying the same shift to the free-floating satellites keeps the group
+  // moving together while the Moon-mounted models follow through parenting.
+  function moonRightShift(L) {
+    return ((MOON_R * 2) / L.fw) / 5;
   }
 
   // Frame fraction -> world position, at the depth of the Earth/Moon plane
@@ -2338,6 +2356,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     disposeGroup(flightPath);
 
     const L = moonGroup.position.distanceTo(earthGroup.position);
+    const shiftX = moonRightShift(layout);
     const eB = wrapBasis(WRAP_TILT_EARTH);
     const mB = wrapBasis(WRAP_TILT_MOON);
     const eR = WRAP_R_EARTH * EARTH_R;
@@ -2361,8 +2380,8 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     // join into the wrap doesn't crease.
     outbound = new THREE.CubicBezierCurve3(
       eExit,
-      framePos(layout, ...OUTBOUND_CONTROL[0]),
-      framePos(layout, ...OUTBOUND_CONTROL[1]),
+      framePos(layout, OUTBOUND_CONTROL[0][0] + shiftX * 0.35, OUTBOUND_CONTROL[0][1]),
+      framePos(layout, OUTBOUND_CONTROL[1][0] + shiftX * 0.75, OUTBOUND_CONTROL[1][1]),
       mEnter
     );
 
@@ -2394,7 +2413,13 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     // outbound's last point and homebound's first.
     const out = outbound.getSpacedPoints(48);
     const home = homebound.getSpacedPoints(48);
-    const points = [...out, ...moonWrap.slice(1, -1), ...home];
+    const outStart = out[0]
+      .clone()
+      .addScaledVector(outbound.getTangentAt(0), -FLIGHT_END_EXTENSION * L);
+    const homeEnd = home[home.length - 1]
+      .clone()
+      .addScaledVector(homebound.getTangentAt(1), FLIGHT_END_EXTENSION * L);
+    const points = [outStart, ...out, ...moonWrap.slice(1, -1), ...home, homeEnd];
 
     // Thin and solid (Krittin: "a thin solid ... line isntead of mix of solid
     // and dash lines"), now orange rather than white — see FLIGHT_COLOR.
@@ -2459,9 +2484,13 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
 
   function applyLayout(L) {
     layout = L;
+    const shiftX = moonRightShift(L);
     earthGroup.position.copy(framePos(L, L.earth[0], L.earth[1]));
-    moonGroup.position.copy(framePos(L, L.moon[0], L.moon[1]));
-    cmgHome.copy(framePos(L, L.cmg[0], L.cmg[1]));
+    moonGroup.position.copy(framePos(L, L.moon[0] + shiftX, L.moon[1]));
+    cmgHome
+      .copy(framePos(L, L.cmg[0] + shiftX, L.cmg[1]))
+      .addScaledVector(RIGHT, -(SAT_MODEL_W * CMG_SCALE) / 4)
+      .addScaledVector(UP, -(SAT_MODEL_H * CMG_SCALE) / 4);
     buildFlight();
   }
 
@@ -2494,9 +2523,16 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     // height by h/designH — so the extra world comes in at the bottom only.
     // Symmetrically widening the fov instead would have shifted the whole
     // composition up the screen.
-    const spill = parseFloat(getComputedStyle(scenePane).getPropertyValue("--scene-spill")) || 1;
+    const paneStyle = getComputedStyle(scenePane);
+    const spill = parseFloat(paneStyle.getPropertyValue("--scene-spill")) || 1;
     const designH = spill > 1 ? h / spill : h;
     viewDesignH = designH;
+    // The desktop scene is raised above its normal box. Convert the visible
+    // section bottom into NDC so the lower satellite can sit halfway between
+    // the Hopper and the actual bottom the viewer sees.
+    const topOffset = parseFloat(paneStyle.top) || 0;
+    const visibleBottomPx = Math.min(h, designH - topOffset);
+    viewBottomNdcY = 1 - (2 * visibleBottomPx) / h;
 
     const aspect = w / designH;
     const L = layoutFor(aspect);
@@ -2514,7 +2550,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     // first decides the visible height, so the whole composition is always on
     // screen with the surplus split evenly around it.
     const visibleH = aspect >= L.fw / L.fh ? L.fh : L.fw / aspect;
-    const distance = visibleH / (2 * HALF_FOV);
+    const distance = (visibleH * L.fit) / (2 * HALF_FOV);
 
     camera.aspect = aspect;
     camera.position.copy(DIR).multiplyScalar(distance);
@@ -2630,7 +2666,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // constant until the next resize, which calls render() (and so
   // updateLabelPositions()) itself. So the steady-state loop below — throttled
   // to DRIFT_FPS forever just to spin Earth's cloud shell — only needs to
-  // redraw, not re-walk and re-transform all 6 labels on every one of those
+  // redraw, not re-walk and re-transform all 8 labels on every one of those
   // frames for values that haven't changed since the last one.
   function renderFrame() {
     if (!viewW || !viewH) return;
@@ -2693,10 +2729,37 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     earthSpin.rotation.y = EARTH_YAW + EARTH_SPIN_IN * (1 - s);
     moonSpin.rotation.y = MOON_SPIN_IN * (1 - s);
 
-    cmgSat.position.copy(cmgHome).addScaledVector(CMG_ENTRY, 1 - stage(p, STAGE.sat));
+    const satProgress = stage(p, STAGE.sat);
+    cmgSat.position.copy(cmgHome).addScaledVector(CMG_ENTRY, 1 - satProgress);
     placeRobot(stage(p, STAGE.robot));
     park(terragatorRocket, outbound, TERRAGATOR_T * stage(p, STAGE.terra), TERRAGATOR_ROLL);
-    park(navigatorRocket, homebound, NAVIGATOR_T * stage(p, STAGE.navi), NAVIGATOR_ROLL);
+    park(communigatorRocket, homebound, COMMUNIGATOR_T * stage(p, STAGE.navi), COMMUNIGATOR_ROLL);
+
+    // Satellite A sits at the screen-readable midpoint of the CBF robot and
+    // TerraGator. Satellite B stays directly below the Lunar Hopper's apex.
+    // Both anchors are derived from the live models, so responsive layouts and
+    // the arrival animation cannot make these relationships drift.
+    robot.getWorldPosition(cbfModelWorld).project(camera);
+    terragatorNdc.copy(terragatorRocket.position).project(camera);
+    decorativeSatA.position
+      .set(
+        (cbfModelWorld.x + terragatorNdc.x) * 0.5,
+        (cbfModelWorld.y + terragatorNdc.y) * 0.5,
+        (cbfModelWorld.z + terragatorNdc.z) * 0.5
+      )
+      .unproject(camera)
+      .addScaledVector(CMG_ENTRY, 0.65 * (1 - satProgress));
+    hopMarker.getWorldPosition(hopperWorld).project(camera);
+    decorativeSatB.position
+      .set(
+        hopperWorld.x,
+        (hopperWorld.y + viewBottomNdcY) * 0.5,
+        hopperWorld.z
+      )
+      .unproject(camera)
+      .addScaledVector(RIGHT, THEOS_RIGHT_OFFSET)
+      .addScaledVector(UP, -(SAT_MODEL_H * DECORATIVE_SAT_SCALE_B) / 2)
+      .addScaledVector(CMG_ENTRY, 0.4 * (1 - satProgress));
   }
 
   // Parked state, used under reduced motion and as the resting state a resize

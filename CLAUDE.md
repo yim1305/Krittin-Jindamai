@@ -190,17 +190,34 @@ matches rows to objects by href, so reordering needs no change there.
 |---|---|---|---|
 | Hybrid CMG Desaturation | 2026 | `thesis.html` | the hero's satellite, between the bodies |
 | Non Holonomic CBF | 2026 | `ros-research.html` | TurtleBot at Earth's limb |
-| Project TerraGator | 2026 | `rocket-airbrake.html` | Space Shuttle, outbound climb |
-| Project Navigator | 2025 | `rocket-software.html` | SLS, on the way home |
+| Project TerraGator | 2025 | `rocket-airbrake.html` | Space Shuttle, outbound climb |
+| Project Communigator | 2024 | `rocket-software.html` | SLS, on the way home |
 | Sky Crane | 2025 | `controls-final-project.html` | octagonal deck + 4 thrusters, hovering |
 | Lunar Hopper | 2026, in progress | `senior-design-project.html` | the hop arc off the south pole |
 
-**TerraGator is the airbrake page, Navigator the software one** — the opposite
+**TerraGator is the airbrake page, Communigator the software one** — the opposite
 of the alphabetical guess. **Filenames have never changed and must not**
 through two renames, to avoid breaking links.
 The camera never moves; everything sits in a design frame of `(fx, fy)`
 fractions `resize()` contain-fits. `LAYOUTS` (three presets by aspect) places
-the bodies/satellite; `framePos`'s `k` is real perspective, not fudge.
+the bodies/satellites; the Moon is pushed toward the upper-right, then shifted
+right by exactly one fifth of its displayed diameter. Its attached/flight-path
+models follow. Per-preset camera margins keep the whole Moon and every model
+inside the canvas. Two smaller satellites represent BDot Detumbling and
+THEOS-3A: BDot is the projected midpoint from the CBF robot to TerraGator;
+THEOS-3A starts halfway between the Lunar Hopper apex and the visible page
+bottom, then moves down by half its own model height and 0.42 world units right
+toward the project index; its label sits directly below. BDot's label sits
+close above its satellite.
+Both connect to their index rows, labels, hover panels, and project pages. All
+three satellites use neighboring muted-gold shades. CMG is offset left by one
+quarter of its nominal model width and down by one quarter of its height.
+Communigator parks at the midpoint of the Moon-to-Earth return curve; its label
+is offset down and right to clear the model. On desktop
+`.proj-scene` rises 56px into the preceding sky;
+the Moon's top aligns near the Projects eyebrow, while the wide layout moves
+Earth left to meet the viewport edge. `framePos`'s `k` is real perspective,
+not fudge.
 **Judge spacing in SCREEN space, not world distance** — Navigator sits ~0.76
 units behind the plane, so world (1.35 vs 1.16) and screen (449px vs 175px,
 what Krittin saw) disagree; `cmg` keeps midpoint **fx**, raises **fy** till equidistant.
@@ -226,7 +243,7 @@ what Krittin saw) disagree; `cmg` keeps midpoint **fx**, raises **fy** till equi
   hero's per-face material ARRAY won't work here (`applyFade` needs one).
 - **Three models have a preferred roll** or read as a stick/bare tube —
   shuttle/SLS keep identifying features in local XY, `park()` rolls that
-  plane toward camera (`TERRAGATOR_ROLL`/`NAVIGATOR_ROLL`); satellite gets an
+  plane toward camera (`TERRAGATOR_ROLL`/`COMMUNIGATOR_ROLL`); satellite gets an
   explicit basis (not `setFromUnitVectors`, one axis only) plus `SAT_ROLL`.
 - **`EDGE_CLEAN` is 32°** — a 12-gon's 30° seams vanish, a 10-gon's 36° draw.
   Cylinders/cones want ≥12, except **Sky Crane's deck**: octagon, 45°, deliberate.
@@ -320,12 +337,23 @@ Placeholders are marked in brackets; leave them until Krittin supplies content.
   (`height:100%`, view labels off `50%`), write-up centred on the page.
   **No placeholders left there**: both `.desc` figures are Krittin's own
   diagrams (`cmg-pyramid-configuration.png`, `cmg-simulation-block-diagram.png`).
-  **TerraGator and Navigator have real photos/video now** — a background-removed
-  cutout row (`.cutout-row`/`.cutout`, no card, per-image aspect not a fixed box
-  — "must see the entire model not image cutoff"; `.is-xl` doubles the height
-  cap, on Navigator's rocket) plus one lead `.detail-media` (TerraGator:
-  `assets/video/terragator.mp4`, muted, JS-delayed `.play()` 1s after load;
-  Navigator: the retention-system photo). `.detail-figure--plain` drops the
+  **TerraGator and Communigator have real photos/video now** — background-removed
+  cutouts use `.cutout` (no card, per-image aspect rather than a fixed box —
+  "must see the entire model not image cutoff"). Communigator stacks its
+  payload and retention-system photo under its `.is-xl` rocket in a sticky
+  third rail pulled 220px upward to begin beside the page header. Its software-architecture diagram spans
+  and centers across the complete three-column page grid; invert +
+  grayscale keeps the filled boxes visible while a screen blend removes the
+  diagram's white canvas. The page header and
+  back link use the same 1500px grid as timeframe. Telemetry text describes an
+  APRS package over the 2M LoRa link. `BaroData.csv` is an Excel-container
+  source for `assets/data/communigator-flight-data.json`; the Communigator
+  lead row places the launch photo left of the software architecture and the
+  team photo beneath them. The Results section draws static filtered-altitude
+  and filtered-velocity versus elapsed-time SVG charts from that extracted data.
+  TerraGator's lead is
+  `assets/video/terragator.mp4`, muted with a
+  JS-delayed `.play()` 1s after load. `.detail-figure--plain` drops the
   carbon/ash box (Navigator's flight logs, the CMG block diagram). Higgsfield's
   free credits are at 0; local PowerShell/`System.Drawing` is the fallback —
   decontaminate edge colors (not just threshold alpha), or soft edges halo.

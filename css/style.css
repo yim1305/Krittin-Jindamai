@@ -863,7 +863,7 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
 
    Almost all of this section's CSS went with it. There is no --x/--y
    placement system any more, no --obj-scale, no --moon-d, no per-object
-   boxes and no flat stills: every one of the six projects is real 3D,
+   boxes and no flat stills: every one of the eight projects is real 3D,
    positioned inside the scene against its own design frame, so the arithmetic
    that used to live in these rules now lives in that file's LAYOUTS table.
    What is left here is the canvas's box, the label layer over it, and the
@@ -913,7 +913,7 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
    Awards content it now runs behind (see .awards). */
 .proj-scene{ --scene-spill:1; position:relative; z-index:0; flex:1 1 auto; min-width:0; }
 /* The cursor is set from JS, not here: the scene swaps it to `pointer` only
-   while the pointer is actually over one of the six models.
+   while the pointer is actually over one of the eight project objects.
    The label layer stays at the PANE's height and is not spilled with the
    canvas: labels are placed by transform from the same top-left origin, and
    the scene clamps them to the section-visible band so none can land over the
@@ -938,7 +938,10 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
    list flowing directly under the canvas, and a canvas 68% taller than its box
    would simply cover it. */
 @media (min-width: 901px){
-  .proj-scene{ --scene-spill:1.68; }
+  /* Lift the scene into the open sky above Projects. The section itself is
+     overflow-visible, so the Moon can align with the section eyebrow without
+     clipping at the canvas's former top edge. */
+  .proj-scene{ --scene-spill:1.68; top:-56px; }
 }
 
 /* One plain-text label per project, positioned every render from its object's
@@ -1369,7 +1372,7 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
    diagram's boxes, a log screenshot's last line — can't take the same
    crop-to-fill photos get. TerraGator's ACS 3/ACS 4 flight plots were the
    first case (a box much wider than tall was slicing the axis label and
-   legend off); Navigator's software-design diagram and its three flight-log
+   legend off); Communigator's software-design diagram and its three flight-log
    screenshots need the same treatment for the same reason. `contain`
    letterboxes instead, inside the same carbon box, so nothing at an edge is
    ever lost. Add this class to any image in a .detail-figure or
@@ -1399,9 +1402,15 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
    220–440px carbon/ash box; nothing gets cropped either way, so `.is-chart`
    isn't needed on images using this. */
 .detail-figure--plain img, .detail-figure--plain svg{ display:block; width:100%; height:auto; }
+.bdot-animation{ max-height:520px; }
+.bdot-animation video{ object-fit:contain; }
+.bdot-results-plots{
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:32px;
+}
+.bdot-results-plots .detail-figure{ margin:0; min-width:0; }
 
 /* Background-removed cutouts — TerraGator's finished rocket + ACS stills,
-   Navigator's finished rocket — floating on the page like the home/Projects
+   Communigator's finished rocket — floating on the page like the home/Projects
    3D models do, not confined to a bordered card. Krittin: "attach them as
    image of 3D model and space them out instead of being confined in block
    must see the entire model not image cutoff". No background/border at all
@@ -1436,10 +1445,60 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
    content size at all — without it the default `min-height:auto` wins and
    the image just stays its intrinsic height, ignoring the stretch. */
 .cutout.is-tall img{ flex:1; min-height:0; max-height:none; width:auto; object-fit:contain; }
-/* Navigator's rocket — Krittin: "make rocket 2x bigger" (2x the default
+/* Communigator's rocket — Krittin: "make rocket 2x bigger" (2x the default
    360px cap). Own modifier rather than raising `.cutout img` itself, which
    would also double TerraGator's stills. */
 .cutout.is-xl img{ max-height:720px; }
+
+/* Communigator detail page. The team photo and architecture share the lead
+   row, and the model rail starts at the same top edge in column three. The page
+   header and back link share this wider grid's left edge, so they line up with
+   timeframe rather than retaining the narrower detail-page indent. */
+.communigator-page .back-link,
+.communigator-page .detail-header{ max-width:1500px; }
+.communigator-body{
+  max-width:1500px;
+  grid-template-columns:minmax(220px,280px) minmax(440px,1fr) minmax(200px,290px);
+  gap:48px;
+}
+.communigator-top-visuals{
+  grid-column:1 / 3; grid-row:1; min-width:0;
+  display:grid; grid-template-columns:minmax(180px,.85fr) minmax(0,1.15fr);
+  gap:32px; align-items:start;
+}
+.communigator-top-visuals figure{ margin:0; min-width:0; }
+.communigator-team{ grid-column:1; grid-row:1; }
+.communigator-team img{ display:block; width:100%; height:auto; object-fit:contain; }
+.communigator-team img{ max-height:360px; }
+.communigator-architecture{
+  grid-column:2; grid-row:1; margin:0; min-width:0;
+  display:flex; flex-direction:column; align-items:center;
+}
+.communigator-architecture img{
+  width:100%; max-height:280px; object-fit:contain; object-position:center;
+  /* The white canvas screen-blends away; the diagram's filled boxes remain
+     visible, matching the state before the line-art-only treatment. */
+  filter:invert(1) grayscale(1); mix-blend-mode:screen;
+}
+.communigator-architecture figcaption{ width:100%; text-align:left; }
+.communigator-model-rail{
+  grid-column:3; grid-row:1 / span 2; align-self:start; position:sticky; top:96px;
+  display:flex; flex-direction:column; gap:48px; margin-top:-220px;
+}
+.communigator-rocket img{ width:100%; max-height:720px; object-fit:contain; }
+.communigator-payload img{ width:100%; max-height:320px; object-fit:contain; }
+.communigator-retention{ margin:0; }
+.communigator-retention img{ width:100%; height:auto; object-fit:contain; }
+.communigator-retention figcaption{ text-align:center; }
+.communigator-flight-charts{
+  display:grid; grid-template-columns:1fr; gap:40px;
+  margin:40px 0;
+}
+.communigator-flight-charts .cmg-chart-box{ min-width:0; margin:0; }
+.communigator-flight-charts .cmg-chart-box > figcaption{
+  margin:0 0 10px; font-family:var(--mono); font-size:11px;
+  text-transform:uppercase; color:var(--graphite);
+}
 
 /* CBF project's recorded Gazebo run (ros-research.html only) — js/cbf-scene.js
    plays one continuous episode of Krittin's ROS 2 capture as a fixed-camera 3D
@@ -1727,6 +1786,18 @@ footer{
   .proj-program{ font-size:12px; }
   .projects .section-inner{ padding-left:20px; padding-right:20px; }
   .detail-body{ grid-template-columns:1fr; }
+  .bdot-results-plots{ grid-template-columns:1fr; gap:24px; }
+  .communigator-body{ grid-template-columns:1fr; max-width:1200px; }
+  .communigator-top-visuals{ grid-column:auto; grid-row:auto; grid-template-columns:1fr; gap:24px; }
+  .communigator-architecture,
+  .communigator-team{ grid-column:1; grid-row:auto; }
+  .communigator-team img{ max-height:none; }
+  .communigator-flight-charts{ grid-template-columns:1fr; gap:24px; }
+  .communigator-model-rail{
+    grid-column:auto; grid-row:auto; position:static; width:min(100%,336px);
+    margin-top:0;
+    justify-self:center;
+  }
   /* 70% of a column that's already narrow reads as cramped, not abstract. */
   .detail-figure--inset{ max-width:100%; margin-left:0; margin-right:0; }
   .detail-figure--float-left{ float:none; width:100%; max-width:100%; margin:0 0 24px; }

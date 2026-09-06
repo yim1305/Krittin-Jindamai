@@ -18,7 +18,7 @@
        whenever style.css, main.js, or a scene module changes, in every HTML
        file that references it — see the matching tags in css/style.css and
        js/main.js and every projects/*.html. -->
-  <link rel="stylesheet" href="css/style.css?v=20260906c">
+  <link rel="stylesheet" href="css/style.css?v=20260906m">
 
   <!-- In <head> and render-blocking, deliberately. `pagereveal` fires before
        the document's first render, and on a page this size the browser can
@@ -688,11 +688,13 @@
           <div class="proj-index-heading">research</div>
           <a href="projects/thesis.html"><span class="proj-title">Hybrid CMG Momentum Desaturation</span><span class="proj-year">2026</span><span class="proj-program">(undergraduate honors thesis)</span></a>
           <a href="projects/ros-research.html"><span class="proj-title">Nonholonomic CBF</span><span class="proj-year">2026</span><span class="proj-program">(university scholars program)</span></a>
+          <a href="projects/bdot-detumbling.html"><span class="proj-title">BDOT Detumbling</span><span class="proj-year">2024</span></a>
         </nav>
         <nav class="proj-index proj-index-projects" aria-label="Projects">
           <div class="proj-index-heading">other projects</div>
-          <a href="projects/rocket-airbrake.html"><span class="proj-title">Project TerraGator</span><span class="proj-year">2026</span></a>
-          <a href="projects/rocket-software.html"><span class="proj-title">Project Navigator</span><span class="proj-year">2025</span></a>
+          <a href="projects/rocket-airbrake.html"><span class="proj-title">Project TerraGator</span><span class="proj-year">2025</span></a>
+          <a href="projects/rocket-software.html"><span class="proj-title">Project Communigator</span><span class="proj-year">2024</span></a>
+          <a href="projects/theos3a.html"><span class="proj-title">THEOS3a</span><span class="proj-year">2025</span></a>
           <a href="projects/controls-final-project.html"><span class="proj-title">Sky Crane</span><span class="proj-year">2025</span></a>
           <a href="projects/senior-design-project.html"><span class="proj-title">Lunar Hopper</span><span class="proj-year">2026</span></a>
         </nav>
@@ -724,7 +726,7 @@
         try {
           // A real dynamic import: the 135 KB scene and its Three.js add-ons
           // are neither downloaded nor parsed until Projects approaches.
-          const { initSystemScene } = await import("./js/system-scene.js?v=20260906c");
+          const { initSystemScene } = await import("./js/system-scene.js?v=20260906k");
           initSystemScene({
             canvas: systemCanvas,
             labelLayer: document.getElementById("system-labels"),

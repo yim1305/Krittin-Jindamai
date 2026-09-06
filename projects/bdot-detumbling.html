@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>B-Dot Control Detumbling — Krittin Jindamai</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css?v=20260906n">
+
+  <!-- In <head> and render-blocking, deliberately — see index.html. -->
+  <script src="../js/main.js?v=20260906c"></script>
+</head>
+<body>
+
+  <div class="nebula" id="nebula"></div>
+
+  <div class="stars" id="stars">
+      <div class="star-layer star-mid"  data-depth="0.10" data-drift="15"></div>
+    </div>
+
+  <nav class="topnav">
+    <div class="wordmark">krittin jindamai</div>
+    <div class="navlinks">
+      <a href="../index.html#home">home</a>
+      <a href="../index.html#about">about</a>
+      <a href="../index.html#experience">experience</a>
+      <a href="../index.html#projects">projects</a>
+      <span class="nav-indicator" id="nav-indicator"></span>
+    </div>
+    <div class="scroll-progress" id="scroll-progress"></div>
+  </nav>
+
+  <a class="back-link" href="../index.html#projects">← back to projects &amp; papers</a>
+
+  <div class="detail-header">
+    <div class="eyebrow"><span class="dot"></span>research — 03</div>
+    <h1 class="detail-title">B-Dot Control Detumbling</h1>
+    <div class="detail-sub">TRIAD Method Attitude Determination and B-Dot Magnetorquer Control for LEO Satellite Detumbling</div>
+    <div class="detail-cta">
+      <a class="paper-btn" href="#" target="_blank" rel="noopener">paper coming soon</a>
+      <a class="paper-btn" href="#" target="_blank" rel="noopener">↗ view code</a>
+    </div>
+  </div>
+
+  <div class="detail-media">
+    <div class="detail-media-inner bdot-animation">
+      <video id="bdot-animation" autoplay muted loop playsinline preload="metadata" aria-label="B-dot detumbling simulation animation">
+        <source src="../assets/video/BDOT%20animation.mp4" type="video/mp4">
+      </video>
+    </div>
+  </div>
+
+  <div class="detail-body">
+    <div class="facts" data-reveal>
+      <div class="fact-block">
+        <div class="fact-label">PI</div>
+        <div class="fact-value">Dr. Phongsatorn Saisutjarit</div>
+      </div>
+      <div class="fact-block">
+        <div class="fact-label">role</div>
+        <div class="fact-value">ADCS Engineer</div>
+      </div>
+      <div class="fact-block">
+        <div class="fact-label">department</div>
+        <div class="fact-value">Mechanical and Aerospace Engineering, King Mongkut's University of Technology North Bangkok</div>
+      </div>
+      <div class="fact-block">
+        <div class="fact-label">duration</div>
+        <div class="fact-value">Summer 2024</div>
+      </div>
+      <div class="fact-block">
+        <div class="fact-label">tools &amp; methods</div>
+        <div class="tag-row">
+          <div class="tag">MATLAB</div>
+          <div class="tag">Aerospace Toolbox</div>
+          <div class="tag">B-dot Control</div>
+          <div class="tag">Quaternion Dynamics</div>
+          <div class="tag">RK4 Integration</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="desc" data-reveal>
+      <h3>focus</h3>
+      <p>During the summer of my freshman year, I worked with Dr. Saisutjarit on KnackSat 3, the first CubeSat fully designed and built by Thai undergraduate students. I simulated magnetic detumbling in MATLAB to tune the B-dot control gain before deploying the software on the flight computer.</p>
+
+      <h3>approach</h3>
+      <ul>
+        <li><strong>orbit and environment</strong>: propagated a Low Earth Orbit from Keplerian elements in the Earth-Centered Inertial frame, solving Kepler's equation with Newton-Raphson iteration and modeling J2 precession of RAAN and argument of perigee</li>
+        <li><strong>magnetic-field and attitude model</strong>: computed the IGRF field with <code>igrfmagm</code>, transformed it into the body frame with a quaternion-derived direction cosine matrix, and modeled angular velocity, scalar-first quaternions, Euler angles, and Euler's rotational equations</li>
+        <li><strong>B-dot control</strong>: implemented the magnetorquer law with coil current, magnetic dipole moment, actuator saturation, and magnetic control torque, then integrated the attitude state with a fourth-order Runge-Kutta method</li>
+        <li><strong>disturbance framework</strong>: included gravity-gradient, atmospheric-drag, solar-radiation-pressure, atmospheric, and residual magnetic-dipole torque models</li>
+        <li><strong>analysis</strong>: generated orbital, magnetic-field, angular-velocity, quaternion, Euler-angle, and magnetorquer-current plots plus a 3D attitude visualization using MATLAB Aerospace Toolbox functions</li>
+      </ul>
+
+      <h3>results</h3>
+      <div class="bdot-results-plots">
+        <figure class="detail-figure detail-figure--plain">
+          <img loading="lazy" decoding="async" src="../assets/images/projects/BDOT%20plot.png" alt="B-dot detumbling simulation plot">
+          <figcaption>B-dot detumbling simulation result</figcaption>
+        </figure>
+        <figure class="detail-figure detail-figure--plain">
+          <img loading="lazy" decoding="async" src="../assets/images/projects/BDOT1%20plot.png" alt="B-dot magnetorquer simulation plot">
+          <figcaption>magnetorquer control response</figcaption>
+        </figure>
+      </div>
+    </div>
+  </div>
+
+  <footer>krittin jindamai — mission log — 2026</footer>
+
+  <script>
+    const bdotAnimation = document.getElementById("bdot-animation");
+    if (bdotAnimation) {
+      const setBdotSpeed = () => { bdotAnimation.playbackRate = 3; };
+      bdotAnimation.addEventListener("loadedmetadata", setBdotSpeed, { once: true });
+      setBdotSpeed();
+    }
+  </script>
+
+</body>
+</html>
