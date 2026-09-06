@@ -33,8 +33,25 @@ export — simulated fresh from the PDF's own poles/K-matrix, illustrative
 only (see the note in the HTML for how, and why it isn't a replica of the
 paper's actual noisy disturbance run).
 `projects/thesis.html` (CMG) loads `cmg-pyramid-configuration.png` (the
-four-CMG pyramid mounting diagram) into its one `.desc` figure — renamed
-from `cmg pyramid configuration.png`.
+four-CMG pyramid mounting diagram) — renamed from
+`cmg pyramid configuration.png` — and `cmg-simulation-block-diagram.png`
+(Krittin's own MATLAB simulation block diagram: tracking controller, HCMG
+steering, and the MTQ cross-product desaturation loop), renamed from
+`Thesis Simulation Block Diagram.png` for the same clean-URL reason. The
+pyramid render is white-background and sits in the carbon box with `.is-chart`
+(`contain`, so nothing is cropped). The 960x720 block diagram is
+`.detail-figure--plain` — unboxed, full column width at its own aspect ratio,
+because the box's 440px height cap shrank its labels too far to read — and its
+ink was recoloured from black to `--bone` (#eeeeee) for the dark page:
+Krittin's export is ALREADY alpha-cut (black strokes on full transparency, not
+on white), so the recipe is simply "keep every pixel's alpha, set RGB to
+#eeeeee". Do NOT derive alpha from luminance the way a chroma-key would — the
+transparent field is (0,0,0,0), reads as black, and floods solid. His original
+is kept verbatim as `cmg-simulation-block-diagram-source.png` so the recolour
+can be redone or reverted. The live copy is additionally cropped to its ink
+(960x479 from 960x720, 14px of breathing room top and bottom) — his export
+carried ~116px of empty canvas above the drawing and ~153px below, which read
+on the page as a gap the figure's CSS margins could not explain.
 
 If the home scatter field is ever revived instead, see "Projects field" in
 `CLAUDE.md` for what that would involve — its markup was deleted rather than

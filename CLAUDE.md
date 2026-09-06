@@ -18,18 +18,20 @@ js/main.js              typing, eased scroll, reveals, nav, descent, starfield, 
 js/orbit-scene.js       the Three.js hero (ES module)
 js/system-scene.js      the Three.js Earth/Moon system in Projects (ES module)
 js/cmg-scene.js         real HCMG sim attitude animation, thesis.html only (ES module)
+js/cbf-scene.js         real Gazebo CBF run, ros-research.html only (ES module)
 js/moon-scene.js        SUPERSEDED, imported by nothing — kept as a revert path
 projects/_template.html duplicate for a build/design project (timeframe/role/tools)
 projects/_template-research.html duplicate for a research entry (PI/dept/duration)
+scripts/export-cbf-run.ps1  derives assets/data/cbf-run.csv from the raw capture
 assets/                 images/ (nebula-backdrop.webp, about media), papers/, data/
 ```
 
 ## Local dev
 
 ES modules mean **`file://` will not work** — serve over HTTP (`npx serve .`).
-Three.js r160 comes from unpkg via the import map in `index.html`'s `<head>`
-(required — `OrbitControls.js` imports the bare specifier `"three"`), so both
-3D scenes need a connection.
+Three.js r160 comes from unpkg via an import map in the `<head>` of every page
+with a scene (required — addons import the bare specifier `"three"`), so all
+four 3D scenes need a connection.
 
 **Do not start a server or open a browser to verify changes** — Krittin checks
 visually himself and it loads his laptop. Reason about the code, state the
@@ -83,7 +85,10 @@ One page: `home` → `about` → `experience` → `projects` → `awards`.
   `.section-inner` to 1560px (Experience matches); the rest stay at 1200.
   Every section is `min-height: calc(100vh - 64px)`, content flex-centred —
   **`.section-inner` needs explicit `width: 100%`**, or a flex item with
-  `margin: 0 auto` shrinks to content instead of stretching. Experience is six
+  `margin: 0 auto` shrinks to content instead of stretching. **Auto margins
+  suppress stretch on GRID items too** — inherited `margin: 0 auto` is what
+  silently centred thesis.html's `.detail-header` in its columns; set
+  `margin: 0` (or `width: 100%`) on any such item. Experience is six
   hairline rows inverting to a light panel on hover (`grid-template-rows:
   0fr -> 1fr`); no hover below 900px, so detail stays open.
 
@@ -240,9 +245,8 @@ what Krittin saw) disagree; `cmg` keeps midpoint **fx**, raises **fy** till equi
   off for whichever body the object stands ON). Nudges are a prefix of the
   text ("as far as 'nav'"), so `dx` derives from mono's 0.6em, not pixels.
 - **`EARTH_YAW` is chosen at runtime** — a 128×64 bake scored for green land
-  facing camera, becomes `earthSpin`'s rest rotation (arrival settles *onto*
-  it, not 0). `EARTH_TILT_X` (−45°)/`MOON_TILT_X` (−35°) decide which pole
-  faces where.
+  facing camera, becomes `earthSpin`'s rest rotation (arrival settles *onto* it,
+  not 0). `EARTH_TILT_X` (−45°)/`MOON_TILT_X` (−35°) decide which pole faces where.
 - **TurtleBot stands at Earth's LIMB, not on the disc** — `robotWant`'s
   toward-camera component (0.18) is the dial (~80° off view direction);
   below ~0.12 it crosses to the far side and floats. `greenestNear`'s green
@@ -250,13 +254,31 @@ what Krittin saw) disagree; `cmg` keeps midpoint **fx**, raises **fy** till equi
 - **Far field (Sun/Saturn/Mars) removed** — "just make nebula the thing that
   slowly changes." Earth's cloud shell is the only moving part and the only
   reason there's a render loop (`DRIFT_FPS` 24, visible-only, off reduced).
-- Build each body *before* its graticule/limb/surface, or draw order breaks.
-  Every path is a flat `Line2` — its `LineMaterial` needs `resolution` set,
-  and `resize()` walks `isLineMaterial` **after** `applyLayout`.
+  Build each body *before* its graticule/limb/surface, or draw order breaks.
+  Every path is a flat `Line2` — its `LineMaterial` needs `resolution` set, and
+  `resize()` walks `isLineMaterial` **after** `applyLayout`.
 - **Section sizing:** edge to edge, one screen above 900px, `flex-start` not
   `center` (center + hard height overflows both ends). Mobile: 70vh scene,
   index under it. `ROBOT_DROP` scales with `ROBOT_SCALE`. Separate scene from
   the hero — Krittin turned the continuous-globe version down.
+
+## The CBF run — `js/cbf-scene.js`, ros-research.html's lead
+
+Krittin's real Gazebo capture under a fixed camera: floor grid, commanded
+spiral, safe set as four markers, TurtleBot, driven path. Rationale lives in the
+module header and `assets/data/README.md`; the rules that bite:
+
+- **`robot_odom.csv` is 8 episodes, not one run** (7 repositions jump the pose
+  between 35 ms samples). Play `cbf-run.csv`, which `scripts/export-cbf-run.ps1`
+  derives — **never stitch two episodes**. **Reverse driving is real** (18% of
+  moving samples, course = yaw + π), and the look-ahead point grazes a few cm
+  out (min h = −0.018 m) — never claim h ≥ 0 strictly.
+- **The camera is solved, not placed** — `fitCamera()` contains the whole
+  5.5 × 13.5 m room at any aspect. Elevation and azimuth both cost scale;
+  50°/8° gives ~63 px/m at 1120 px and the room's length sets the canvas
+  aspect, so re-check numerically before nudging either. Robot **drawn 4x**
+  (1:1 is nine pixels), disclosed in the legend. Trail grows via
+  `instanceCount` on its `Line2`, never a rebuilt buffer.
 
 ## Content status — do not fabricate any of this
 
@@ -277,27 +299,33 @@ Placeholders are marked in brackets; leave them until Krittin supplies content.
   responsibility, a paper+code CTA) have real content on CBF (**university
   scholars program**) and CMG (**undergraduate honors thesis**) — tagged on
   their page, in `PROJECTS`' hover `desc`, and in the index (`.proj-program`,
-  own line via `flex-wrap`). Build pages don't normally get a paper link —
-  **Sky Crane is the exception**: a real class PDF (`controls-final-
-  project.pdf`) Krittin asked to link, its overview/approach/results is
-  AI-written FROM that PDF, and 2 of its 3 results plots are now real
-  exports (`crane-linsim-result.png`/`-nonlinsim-result.png`) — only
-  pole-placement is still simulated fresh from the PDF's poles/K-matrix
-  (not an export, illustrative only, flag as needing his read-through).
-  TerraGator/Navigator/Sky Crane otherwise use whatever
-  `.desc` header breakdown Krittin gave, not a fixed overview/approach/
-  results. Lunar Hopper untouched. thesis.html's
-  lead media + `.cmg-charts` are live off `assets/data/`/`js/cmg-scene.js`.
-  **TerraGator and Navigator have real photos/video now** — a background-
-  removed floating cutout row (`.cutout-row`/`.cutout`, no card, per-image
-  aspect not a fixed box — "must see the entire model not image cutoff";
-  `.is-xl` doubles a cutout's height cap, on Navigator's rocket) plus one lead
-  `.detail-media` (TerraGator: `assets/video/terragator.mp4`, muted,
-  JS-delayed `.play()` 1s after load; Navigator: the retention-system photo).
-  `.detail-figure--plain` drops the carbon/ash box for Navigator's flight-log
-  results. Higgsfield's free credits are at 0; local PowerShell/
-  `System.Drawing` chroma-keying is the fallback — decontaminate edge colors
-  (not just threshold alpha), or soft edges halo against a dark background.
+  own line via `flex-wrap`). **CBF's lead is the animation now**, its two real
+  Gazebo stills moved down into `.desc`. Build pages don't normally get a paper
+  link — **Sky Crane is the exception**: a real class PDF Krittin asked to link
+  (`controls-final-project.pdf`), its overview/approach/results AI-written FROM
+  that PDF, 2 of its 3 results plots real exports (`crane-linsim-result.png`/
+  `-nonlinsim-result.png`) and pole-placement simulated fresh from the PDF's
+  poles/K-matrix (illustrative only, flag as needing his read-through).
+  TerraGator/Navigator/Sky Crane otherwise use whatever `.desc` header
+  breakdown Krittin gave, not a fixed overview/approach/results. Lunar Hopper
+  untouched. thesis.html's lead media + five plots are
+  live off `assets/data/`/`js/cmg-scene.js`, and **it is one grid, not two
+  columns**: title, plots and animation share `.thesis-workspace` (three
+  columns) so the animation's stacked halves line up with plot rows — satellite
+  beside the title, globe beside the flywheel plots, torque beside
+  gimbal/singularity — the canvas taking its height from the two rows it spans
+  (`height:100%`, view labels off `50%`), write-up centred on the page.
+  **No placeholders left there**: both `.desc` figures are Krittin's own
+  diagrams (`cmg-pyramid-configuration.png`, `cmg-simulation-block-diagram.png`).
+  **TerraGator and Navigator have real photos/video now** — a background-removed
+  cutout row (`.cutout-row`/`.cutout`, no card, per-image aspect not a fixed box
+  — "must see the entire model not image cutoff"; `.is-xl` doubles the height
+  cap, on Navigator's rocket) plus one lead `.detail-media` (TerraGator:
+  `assets/video/terragator.mp4`, muted, JS-delayed `.play()` 1s after load;
+  Navigator: the retention-system photo). `.detail-figure--plain` drops the
+  carbon/ash box (Navigator's flight logs, the CMG block diagram). Higgsfield's
+  free credits are at 0; local PowerShell/`System.Drawing` is the fallback —
+  decontaminate edge colors (not just threshold alpha), or soft edges halo.
 - **Skills marquee** — duplicated in the markup; edit both copies. Resume,
   LinkedIn and GitHub links are all real now.
 

@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -8,10 +8,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css?v=20260905b">
+  <link rel="stylesheet" href="../css/style.css?v=20260906c">
 
   <!-- In <head> and render-blocking, deliberately — see index.html. -->
-  <script src="../js/main.js?v=20260831f"></script>
+  <script src="../js/main.js?v=20260906c"></script>
+
+  <!-- Import map for js/cbf-scene.js's "three" specifier — same CDN build the
+       other three scenes use, see the note in index.html. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.min.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
 </head>
 <body>
 
@@ -46,14 +57,26 @@
     </div>
   </div>
 
-  <!-- One lead image, the other scattered into .desc below instead of a
-       side-by-side pair — Krittin: "images dont need to all be side by side
-       ... make them different for each project". Both real now: the Gazebo
-       workspace (safe-set boundary + robot) as the lead, the path plot
-       further down in .desc. -->
+  <!-- Lead is the real Gazebo run (js/cbf-scene.js), the same way the CMG page
+       leads with its real MATLAB run: one continuous 60-second episode of
+       Krittin's 235-second ROS 2 capture, played back from assets/data/ with
+       the commanded spiral, the safe set and the path actually driven. Not a
+       reconstruction — the pose in every frame is a recorded sample. The two
+       Gazebo stills he had here before now sit in .desc below, where the
+       written approach can point at them. Transparent box, like the CMG
+       animation: Krittin, of that one — "no border around or anything, just
+       have the plot and animation by itself". -->
   <div class="detail-media">
-    <div class="detail-media-inner">
-      <img loading="lazy" decoding="async" src="../assets/images/projects/cbf-1.png" alt="Gazebo simulation — rectangular safe-set boundary with the robot near its center">
+    <div class="detail-media-inner detail-media-inner--transparent cbf-animation">
+      <canvas id="cbf-canvas" role="img" aria-label="Recorded Gazebo run: a TurtleBot3 Burger tracking a spiral reference inside a rectangular safe set, its driven path drawn behind it, the safe-set markers brightening as its look-ahead point closes on a wall"></canvas>
+      <div class="cbf-view-label">Gazebo run <span>TurtleBot3 Burger · CBF-QP safety filter · 60 s episode at 2× speed</span></div>
+      <div class="cbf-legend">
+        <span class="cbf-key cbf-key--path">path driven</span>
+        <span class="cbf-key cbf-key--ref">commanded spiral</span>
+        <span class="cbf-key cbf-key--safe">safe set · 5.5 × 13.5 m</span>
+        <span class="cbf-note">robot drawn 4× scale</span>
+      </div>
+      <div class="cbf-hud" id="cbf-hud"></div>
     </div>
   </div>
 
@@ -101,6 +124,14 @@
         <li><strong>simulation</strong>: TurtleBot3 Burger and lab geometry in Gazebo Harmonic (ROS 2 Humble), with the full tracker → CBF-QP filter → actuation pipeline running as ROS 2 nodes in closed loop</li>
       </ul>
 
+      <!-- Both Gazebo stills live here now that the lead is the animation:
+           the workspace shot first, where the safe set is described, then the
+           trajectory plot. -->
+      <figure class="detail-figure detail-figure--inset align-left">
+        <div class="detail-figure-media"><img loading="lazy" decoding="async" src="../assets/images/projects/cbf-1.png" alt="Gazebo simulation — rectangular safe-set boundary with the robot near its center"></div>
+        <figcaption>the lab in Gazebo — safe-set boundary and the robot</figcaption>
+      </figure>
+
       <figure class="detail-figure">
         <div class="detail-figure-media"><img loading="lazy" decoding="async" class="is-chart" src="../assets/images/projects/cbf-2.png" alt="Top-down trajectory plot — robot path spiraling into the waypoint, heading vector marked in red"></div>
         <figcaption>waypoint approach — heading-aware trajectory</figcaption>
@@ -112,6 +143,44 @@
   </div>
 
   <footer>krittin jindamai — mission log — 2026</footer>
+
+  <!-- Mounted on approach, not on load: the module pulls three.js from a CDN
+       and three CSVs, none of which should compete with first paint. Same
+       pattern as thesis.html. -->
+  <script type="module">
+    const canvas = document.getElementById("cbf-canvas");
+    if (canvas) {
+      let mounted = false;
+      const mount = async () => {
+        if (mounted) return;
+        mounted = true;
+        try {
+          const { initCbfScene } = await import("../js/cbf-scene.js?v=20260906c");
+          await initCbfScene({
+            canvas,
+            runUrl: "../assets/data/cbf-run.csv",
+            spiralUrl: "../assets/data/spiral_geometry.csv",
+            wallsUrl: "../assets/data/walls.csv",
+            hudEl: document.getElementById("cbf-hud"),
+          });
+        } catch (error) {
+          mounted = false;
+          console.error("Could not load the CBF run", error);
+        }
+      };
+
+      if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver((entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          observer.disconnect();
+          void mount();
+        }, { rootMargin: "320px" });
+        observer.observe(canvas);
+      } else {
+        void mount();
+      }
+    }
+  </script>
 
 </body>
 </html>

@@ -237,6 +237,7 @@ function surfaceUniforms(surfaceTex) {
     uSurface: { value: surfaceTex },
     uLight: { value: new THREE.Vector3(0.55, 0.42, 0.72).normalize() },
     uFade: { value: REDUCED ? 1 : 0 },
+    uBrightness: { value: 1 },
   };
 }
 
@@ -254,6 +255,7 @@ function buildPlanet(surfaceTex) {
       uniform sampler2D uSurface;
       uniform vec3 uLight;
       uniform float uFade;
+      uniform float uBrightness;
       varying vec2 vUv;
       varying vec3 vWorldN;
 
@@ -270,12 +272,29 @@ function buildPlanet(surfaceTex) {
         float day = smoothstep(-0.22, 0.44, dot(N, L));
         day = floor(day * 4.0 + 0.5) / 4.0;
 
-        gl_FragColor = vec4(surf.rgb * (0.16 + 0.84 * day), uFade);
+        gl_FragColor = vec4(surf.rgb * (0.16 + 0.84 * day) * uBrightness, uFade);
       }
     `,
   });
 
   return { mesh: new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R, 96, 64), material), uniforms };
+}
+
+// Reuse the homepage's exact surface, clouds and grid in project scenes.
+// This factory does not initialize the hero, its animation, or its controls.
+export function createEarthModel(renderer, radius = 1) {
+  const texture = bakeSurfaceTexture(renderer, 512);
+  const planet = buildPlanet(texture);
+  const clouds = buildClouds(texture);
+  planet.uniforms.uFade.value = 1;
+  clouds.uniforms.uFade.value = 1;
+  // The project globe is fully visible from its first frame; make its surface
+  // opaque so orbital paths and spacecraft behind it are properly occluded.
+  planet.mesh.material.transparent = false;
+  const group = new THREE.Group();
+  group.scale.setScalar(radius / GLOBE_R);
+  group.add(planet.mesh, clouds.mesh, buildGraticule(GLOBE_R * 1.004));
+  return { group, planet, clouds };
 }
 
 // --------------------------------------------------------------------------

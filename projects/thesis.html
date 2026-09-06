@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css?v=20260905b">
+  <link rel="stylesheet" href="../css/style.css?v=20260906c">
 
   <!-- In <head> and render-blocking, deliberately — see index.html. -->
-  <script src="../js/main.js?v=20260831f"></script>
+  <script src="../js/main.js?v=20260906c"></script>
 
   <!-- Import map for js/cmg-scene.js's "three" specifier — same CDN build
        index.html's two scenes use, see the note there. Only this one detail
@@ -19,12 +19,13 @@
   <script type="importmap">
   {
     "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.min.js"
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.min.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
     }
   }
   </script>
 </head>
-<body>
+<body class="thesis-page">
 
   <div class="nebula" id="nebula"></div>
 
@@ -46,6 +47,7 @@
 
   <a class="back-link" href="../index.html#projects">← back to projects &amp; papers</a>
 
+  <main class="thesis-workspace" aria-label="Thesis project">
   <div class="detail-header">
     <div class="eyebrow"><span class="dot"></span>research — 02</div>
     <h1 class="detail-title">Hybrid CMG Momentum Desaturation</h1>
@@ -58,11 +60,20 @@
            gives me one. -->
       <a class="paper-btn" href="https://github.com/yim1305/Honors-Thesis" target="_blank" rel="noopener">↗ view code</a>
     </div>
+    <!-- The plots' heading rides inside the header block rather than taking a
+         grid row of its own: a row of its own between the title and the first
+         plot row would push the animation's two halves out of line with the
+         rows they are meant to sit beside. -->
+    <div class="thesis-plot-heading">
+      <h2>Simulation history</h2>
+      <p>Synchronized with orbit &amp; attitude</p>
+    </div>
   </div>
 
+  <aside class="thesis-animation-rail" aria-label="Orbit and satellite animation">
   <!-- Lead is the real HCMG simulation result (js/cmg-scene.js): the actual
        body-attitude + orbit-position history from a MATLAB run (Main.m /
-       web_export.m in the thesis repo), exported to assets/data/cmg-sim.csv
+       web_export.m in the thesis repo), exported to assets/data/sim_data_mtq_on.csv
        and played back as a looping 3D animation of the bus reorienting to
        track nadir, with labelled body axes (X_B/Y_B/Z_B) and a live nadir
        arrow and a live X/Y/Z position + time readout, same HUD idea as the
@@ -73,33 +84,53 @@
        it (the page's one `view-transition-name:proj-media` lives on
        `.detail-media-inner`, whichever asset occupies it). Transparent
        background (`detail-media-inner--transparent`) so the nebula backdrop
-       shows through rather than a boxed dark panel. The one remaining
-       `.desc` figure below is still a placeholder — image 2/3 were removed
-       (Krittin: "remove image 2 and image 3 placeholder"), not just hidden. -->
+       shows through rather than a boxed dark panel. One canvas, two stacked
+       views: the satellite close-up sits beside the title and the Earth/orbit
+       overview beside the flywheel-speed plots — Krittin: "globe stay on the
+       same line as flywheel speed plots ... satellite plot stay top right".
+       The one remaining `.desc` figure further down is still a placeholder —
+       image 2/3 were removed (Krittin: "remove image 2 and image 3
+       placeholder"), not just hidden. -->
   <div class="detail-media">
-    <div class="detail-media-inner detail-media-inner--transparent">
-      <canvas id="cmg-canvas"></canvas>
+    <div class="detail-media-inner detail-media-inner--transparent cmg-animation cmg-animation--stacked">
+      <canvas id="cmg-canvas" data-layout="stacked" role="img" aria-label="Synchronized simulation: Earth and satellite orbital position alongside spacecraft attitude and nadir direction"></canvas>
+      <div class="cmg-orbit-controls" role="img" aria-label="Drag to rotate the three-dimensional Earth and satellite orbit"></div>
+      <div class="cmg-view-label cmg-view-label--attitude">Satellite attitude <span>body axes &amp; nadir</span></div>
+      <div class="cmg-view-label cmg-view-label--orbit">Earth &amp; orbit <span>drag to rotate · satellite enlarged</span></div>
       <div class="cmg-hud" id="cmg-hud"></div>
     </div>
   </div>
+  </aside>
 
-  <!-- Flywheel-speed comparison, MTQ desaturation off vs on — live SVG line
-       charts (js/cmg-scene.js's buildChart()) reading the same run's
-       exported CSVs directly, drawing themselves in step with the 3D
-       animation above (one shared clock — see the file header). Not a
-       chart library the rest of the site has no other use for. Off:
-       unbounded growth over the 15-orbit run. On: bounded by the
-       magnetorquer desaturation loop. -->
-  <div class="cmg-charts">
-    <div class="cmg-chart-box">
+  <section class="thesis-plot-rail" aria-label="Simulation plots">
+    <figure class="cmg-chart-box">
+      <figcaption class="cmg-chart-caption"><span>01</span> Flywheel speed — MTQ off</figcaption>
+      <div class="cmg-chart-legend"><span class="series-red">wheel 1</span><span class="series-green">wheel 2</span><span class="series-blue">wheel 3</span><span class="series-gold">wheel 4</span><span class="cmg-chart-unit">RPM</span></div>
       <div id="cmg-chart-off"></div>
-      <div class="cmg-chart-caption">flywheel speed — MTQ desaturation off</div>
-    </div>
-    <div class="cmg-chart-box">
+    </figure>
+    <figure class="cmg-chart-box">
+      <figcaption class="cmg-chart-caption"><span>02</span> Flywheel speed — MTQ on</figcaption>
+      <div class="cmg-chart-legend"><span class="series-red">wheel 1</span><span class="series-green">wheel 2</span><span class="series-blue">wheel 3</span><span class="series-gold">wheel 4</span><span class="cmg-chart-unit">RPM</span></div>
       <div id="cmg-chart-on"></div>
-      <div class="cmg-chart-caption">flywheel speed — MTQ desaturation on</div>
-    </div>
-  </div>
+    </figure>
+    <figure class="cmg-chart-box">
+      <figcaption class="cmg-chart-caption"><span>03</span> Gimbal rates</figcaption>
+      <div class="cmg-chart-legend"><span class="series-red">gimbal 1</span><span class="series-green">gimbal 2</span><span class="series-blue">gimbal 3</span><span class="series-gold">gimbal 4</span><span class="cmg-chart-unit">rad/s</span></div>
+      <div id="cmg-chart-gimbal"></div>
+    </figure>
+    <figure class="cmg-chart-box">
+      <figcaption class="cmg-chart-caption"><span>04</span> Singularity parameters</figcaption>
+      <div class="cmg-chart-legend"><span class="series-cyan">S_RW</span><span class="series-gold">S_CMG</span></div>
+      <div id="cmg-chart-singularity"></div>
+    </figure>
+    <!-- Krittin: torque magnitude "on the same line as gimbal and sing param
+         plot" — third column of that row, where the animation is not. -->
+    <figure class="cmg-chart-box">
+      <figcaption class="cmg-chart-caption"><span>05</span> Torque magnitude</figcaption>
+      <div class="cmg-chart-legend"><span class="series-gold">disturbance</span><span class="series-cyan">MTQ</span><span class="cmg-chart-unit">µN·m</span></div>
+      <div id="cmg-chart-torque"></div>
+    </figure>
+  </section>
 
   <div class="detail-body">
     <div class="facts" data-reveal>
@@ -152,19 +183,33 @@
         <figcaption>four-CMG pyramid array, spin, gimbal and torque axes</figcaption>
       </figure>
 
-      <!-- Two placeholders, added at Krittin's request alongside the approach
-           rewrite: a control block diagram (tracker -> steering algorithm ->
-           HCMG/spacecraft dynamics, MTQ loop closing separately in RW mode)
-           and one open slot for whatever image he adds next. Real files only
-           — per CLAUDE.md, nothing here gets invented or auto-generated. -->
-      <figure class="detail-figure">
-        <div class="detail-figure-media">[ block diagram: eigenaxis tracking controller, GSR + null motion steering algorithm, HCMG/spacecraft dynamics, and the MTQ desaturation loop closing in RW mode ]</div>
-        <figcaption>[caption: control system block diagram]</figcaption>
-      </figure>
-
-      <figure class="detail-figure detail-figure--inset align-right">
-        <div class="detail-figure-media">[ image ]</div>
-        <figcaption>[caption]</figcaption>
+      <!-- Krittin's own simulation block diagram, dropped into
+           assets/images/projects/ as "Thesis Simulation Block Diagram.png" and
+           renamed for a clean URL like every other still in that folder. It
+           replaces the placeholder that described it; the blank
+           `[ image ]/[caption]` slot that sat below is gone too — Krittin:
+           "remove another caption placeholder that was left blank". Caption
+           and alt text read the diagram, they do not invent it.
+           `--plain` (no `.detail-figure-media` wrapper) rather than the carbon
+           box — Krittin: "make sure entire block diagram is visible". The box
+           caps at 440px tall, so `is-chart`'s `contain` was letterboxing this
+           4:3 960x720 drawing down to ~587px wide, shrinking every block label
+           with it; unboxed it runs the full column at its own aspect ratio,
+           near native size, with nothing cropped either way. Its ink is
+           recoloured black -> `--bone` (Krittin: "change text from black and
+           blocks from black to white lines") straight in the PNG rather than
+           with a CSS `filter`, so the anti-aliased strokes stay clean on the
+           dark page; the original ships beside it as `-source.png` and
+           README.md in that folder has the one-line recipe. It is also cropped
+           to its own ink (960x479, was 960x720) — Krittin: "too much space
+           between the diagram and the image above and the diagram title below
+           it"; that space was empty canvas inside the PNG, not CSS margin, so
+           `.desc .detail-figure`'s 40px rhythm now actually reads as 40px.
+           `?v=` on an image is unusual here, but the bytes changed twice under
+           a filename the browser has already cached. -->
+      <figure class="detail-figure detail-figure--plain">
+        <img loading="lazy" decoding="async" src="../assets/images/projects/cmg-simulation-block-diagram.png?v=20260906c" alt="Simulation block diagram: references and a mode switch parameter feed the eigenaxis tracking controller and HCMG steering algorithm, HCMG actuator dynamics produce the actual torque, disturbances sum into the satellite orbit and attitude dynamics, and satellite kinematics close the cross product law and MTQ actuator dynamics loop">
+        <figcaption>simulation block diagram — tracking controller, HCMG steering, and the MTQ cross-product desaturation loop</figcaption>
       </figure>
 
       <h3>results</h3>
@@ -177,6 +222,7 @@
       </ul>
     </div>
   </div>
+  </main>
 
   <footer>krittin jindamai — mission log — 2026</footer>
 
@@ -188,13 +234,16 @@
         if (mounted) return;
         mounted = true;
         try {
-          const { initCmgScene } = await import("../js/cmg-scene.js?v=20260831e");
+          const { initCmgScene } = await import("../js/cmg-scene.js?v=20260906c");
           await initCmgScene({
             canvas,
-            dataUrl: "../assets/data/cmg-sim.csv",
-            offDataUrl: "../assets/data/cmg-sim-mtq-off.csv",
+            dataUrl: "../assets/data/sim_data_mtq_on.csv",
+            offDataUrl: "../assets/data/sim_data_mtq_off.csv",
             chartOnEl: document.getElementById("cmg-chart-on"),
             chartOffEl: document.getElementById("cmg-chart-off"),
+            chartGimbalEl: document.getElementById("cmg-chart-gimbal"),
+            chartSingularityEl: document.getElementById("cmg-chart-singularity"),
+            chartTorqueEl: document.getElementById("cmg-chart-torque"),
             hudEl: document.getElementById("cmg-hud"),
           });
         } catch (error) {

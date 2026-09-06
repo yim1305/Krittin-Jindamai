@@ -1,23 +1,20 @@
 // --------------------------------------------------------------------------
 // CMG project page — the real simulation result, not a synthetic stand-in.
 // Krittin ran the actual MATLAB sim (Main.m / web_export.m in the thesis
-// repo) and exported it to three CSVs in assets/data/:
-//   cmg-sim.csv         t, body quaternion, ECI position, flywheel speed
-//                       (RPM) — the MTQ-desaturation-ON run
-//   cmg-sim-mtq-off.csv t, flywheel speed (RPM) — the MTQ-OFF comparison
+// repo) and exported the current runs to two CSVs in assets/data/:
+//   sim_data_mtq_on.csv  t, quaternion, ECI position (m), flywheel speed
+//                       (rad/s), gimbal rates, torques, S_CMG and S_RW
+//   sim_data_mtq_off.csv t, flywheel speed (rad/s) — the MTQ-OFF comparison
 //                       run, same time grid as cmg-sim.csv row-for-row
 //                       (both come from the same downsampling in
 //                       web_export.m), so one time index looks up both
-// This one clock drives all three visuals — the 3D attitude, and the two
-// flywheel-speed charts drawing themselves live as it plays — rather than
-// three independently-timed pieces. Charts are hand-built SVG (axes, ticks,
+// One clock drives the orbit, attitude and all five time-history plots.
+// Charts are hand-built SVG (axes, ticks,
 // polylines), not a charting library, since nothing else on the site uses
 // one and the data is simple enough not to need it.
 //
-// Playback ping-pongs across the run in compressed time (no jump-cut at the
-// loop point) rather than a hard reset to t=0, since the satellite's real
-// end-of-run attitude doesn't match its start; the charts just redraw
-// however far the same clock has gotten, growing and shrinking with it.
+// Playback runs forward, holds the final result for one second, then resets.
+// The opening maneuver uses a 0–100 s chart window before the full-run view.
 //
 // The 3D scene keeps the site's house style for the bus itself
 // (MeshBasicMaterial, per-vertex banded shading, no lights/gradients, flat
@@ -31,6 +28,11 @@
 // --------------------------------------------------------------------------
 
 import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { Line2 } from "three/addons/lines/Line2.js";
+import { LineGeometry } from "three/addons/lines/LineGeometry.js";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { createEarthModel } from "./orbit-scene.js?v=20260905e";
 
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -175,36 +177,30 @@ function findFrame(t, tv) {
 const SVG_NS = "http://www.w3.org/2000/svg";
 const CHART_W = 600,
   CHART_H = 300;
-const CHART_MARGIN = { l: 50, r: 14, t: 14, b: 30 };
+const CHART_MARGIN = { l: 68, r: 20, t: 14, b: 30 };
 let chartId = 0;
 
-function niceTicks(lo, hi, n = 4) {
-  const step0 = (hi - lo) / n || 1;
-  const mag = Math.pow(10, Math.floor(Math.log10(step0)));
-  const step = Math.round(step0 / mag) * mag || mag;
-  const ticks = [];
-  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) ticks.push(v);
-  return ticks;
-}
-
-function buildChart(container, t, seriesArrays, title) {
+function buildChart(container, t, seriesArrays, title, colors = CHART_COLORS) {
   const tMax = t[t.length - 1];
   const plotW = CHART_W - CHART_MARGIN.l - CHART_MARGIN.r;
   const plotH = CHART_H - CHART_MARGIN.t - CHART_MARGIN.b;
-  let yLo = Infinity;
-  let yHi = -Infinity;
-  seriesArrays.forEach((series) => {
-    series.forEach((value) => {
-      if (value < yLo) yLo = value;
-      if (value > yHi) yHi = value;
+  function rangeThrough(lastIndex) {
+    let lo = Infinity, hi = -Infinity;
+    seriesArrays.forEach((series) => {
+      for (let i = 0; i <= lastIndex; i++) {
+        lo = Math.min(lo, series[i]);
+        hi = Math.max(hi, series[i]);
+      }
     });
-  });
-  const pad = (yHi - yLo) * 0.08 || 50;
-  yLo -= pad;
-  yHi += pad;
-
-  const X = (tv) => CHART_MARGIN.l + (tv / tMax) * plotW;
-  const Y = (v) => CHART_MARGIN.t + plotH - ((v - yLo) / (yHi - yLo)) * plotH;
+    const pad = (hi - lo) * 0.08 || 50;
+    return { lo: lo - pad, hi: hi + pad };
+  }
+  const earlyRange = rangeThrough(findFrame(t, T_SPLIT_SIM).i1);
+  const fullRange = rangeThrough(t.length - 1);
+  const fullSpan = fullRange.hi - fullRange.lo;
+  const earlyScaleY = fullSpan / (earlyRange.hi - earlyRange.lo);
+  const bottom = CHART_MARGIN.t + plotH;
+  const earlyOffsetY = bottom + (earlyRange.lo - fullRange.lo) * plotH / (earlyRange.hi - earlyRange.lo);
 
   const svg = document.createElementNS(SVG_NS, "svg");
   svg.setAttribute("viewBox", `0 0 ${CHART_W} ${CHART_H}`);
@@ -244,8 +240,8 @@ function buildChart(container, t, seriesArrays, title) {
     el.setAttribute("x", x);
     el.setAttribute("y", y);
     el.setAttribute("text-anchor", anchor);
-    el.setAttribute("font-size", "9");
-    el.setAttribute("fill", "#4d4947");
+    el.setAttribute("font-size", "12");
+    el.setAttribute("fill", "#b8b3b0");
     el.textContent = str;
     svg.appendChild(el);
     return el;
@@ -254,93 +250,145 @@ function buildChart(container, t, seriesArrays, title) {
   line(CHART_MARGIN.l, CHART_MARGIN.t, CHART_MARGIN.l, CHART_MARGIN.t + plotH, "#3d3a39");
   line(CHART_MARGIN.l, CHART_MARGIN.t + plotH, CHART_MARGIN.l + plotW, CHART_MARGIN.t + plotH, "#3d3a39");
 
-  niceTicks(yLo, yHi, 4).forEach((yt) => {
-    const yy = Y(yt);
+  const yLabels = Array.from({ length: 5 }, (_, i) => {
+    const yy = bottom - (i / 4) * plotH;
     line(CHART_MARGIN.l - 4, yy, CHART_MARGIN.l, yy, "#3d3a39");
-    text(CHART_MARGIN.l - 8, yy + 3, yt.toLocaleString(), "end");
+    return text(CHART_MARGIN.l - 8, yy + 3, "", "end");
   });
-  [0, 3, 6, 9, 12, 15].forEach((orb) => {
-    const xx = X((orb / 15) * tMax);
+  const xLabels = Array.from({ length: 6 }, (_, i) => {
+    const xx = CHART_MARGIN.l + (i / 5) * plotW;
     line(xx, CHART_MARGIN.t + plotH, xx, CHART_MARGIN.t + plotH + 4, "#3d3a39");
-    text(xx, CHART_MARGIN.t + plotH + 16, String(orb), "middle");
+    return text(xx, CHART_MARGIN.t + plotH + 16, "", i === 5 ? "end" : "middle");
   });
-  text(CHART_MARGIN.l + plotW / 2, CHART_H - 4, "orbits", "middle");
+  const xTitle = text(CHART_MARGIN.l + plotW / 2, CHART_H - 4, "time (s)", "middle");
+
+  // One set of points survives the entire loop. Scale about the left edge,
+  // with clipping in screen coordinates and constant stroke thickness.
+  const clipped = document.createElementNS(SVG_NS, "g");
+  clipped.setAttribute("clip-path", `url(#${clipName})`);
+  const traces = document.createElementNS(SVG_NS, "g");
+  clipped.appendChild(traces);
+  svg.appendChild(clipped);
 
   seriesArrays.forEach((series, i) => {
     const el = document.createElementNS(SVG_NS, "polyline");
     el.setAttribute("fill", "none");
-    el.setAttribute("stroke", CHART_COLORS[i]);
+    el.setAttribute("stroke", colors[i]);
     el.setAttribute("stroke-width", "1.4");
     el.setAttribute("stroke-linejoin", "round");
-    el.setAttribute("clip-path", `url(#${clipName})`);
+    el.setAttribute("vector-effect", "non-scaling-stroke");
     let points = "";
-    for (let k = 0; k < t.length; k++) points += `${X(t[k]).toFixed(1)},${Y(series[k]).toFixed(1)} `;
+    for (let k = 0; k < t.length; k++) {
+      points += `${((t[k] / tMax) * plotW).toFixed(6)},${(-((series[k] - fullRange.lo) / fullSpan) * plotH).toFixed(6)} `;
+    }
     el.setAttribute("points", points);
-    svg.appendChild(el);
+    traces.appendChild(el);
   });
   const nowLine = line(CHART_MARGIN.l, CHART_MARGIN.t, CHART_MARGIN.l, CHART_MARGIN.t + plotH, "#8a8380");
   nowLine.setAttribute("stroke-dasharray", "2,2");
 
   container.replaceChildren(svg);
 
-  return function update(simTime) {
-    const xx = X(simTime);
+  let lastZoom = -1;
+  let scaleX = 1;
+  return function update(simTime, zoom = simTime <= T_SPLIT_SIM ? 0 : 1) {
+    if (zoom !== lastZoom) {
+      lastZoom = zoom;
+      const eased = zoom * zoom * (3 - 2 * zoom);
+      scaleX = (tMax / T_SPLIT_SIM) * (1 - eased) + eased;
+      const scaleY = earlyScaleY * (1 - eased) + eased;
+      const offsetY = earlyOffsetY * (1 - eased) + bottom * eased;
+      traces.setAttribute("transform", `translate(${CHART_MARGIN.l} ${offsetY}) scale(${scaleX} ${scaleY})`);
+      const yLo = fullRange.lo + (offsetY - bottom) * fullSpan / (plotH * scaleY);
+      const ySpan = fullSpan / scaleY;
+      yLabels.forEach((label, i) => {
+        label.textContent = (yLo + (i / 4) * ySpan).toLocaleString(undefined, { maximumFractionDigits: 1 });
+      });
+      xLabels.forEach((label, i) => {
+        label.textContent = (zoom === 1 ? i * 3 : (i / 5) * tMax / scaleX)
+          .toLocaleString(undefined, { maximumFractionDigits: 1 });
+      });
+      xTitle.textContent = zoom === 1 ? "orbits" : "time (s)";
+    }
+    const xx = CHART_MARGIN.l + clamp((simTime / tMax) * scaleX, 0, 1) * plotW;
     clipRect.setAttribute("width", Math.max(0, xx - CHART_MARGIN.l));
     nowLine.setAttribute("x1", xx);
     nowLine.setAttribute("x2", xx);
   };
 }
 
-// Playback pacing is deliberately two-speed, not one linear compression:
-// the first 35s of real sim time (CMG mode 0-25s, then the mode-switch ramp
-// to reaction-wheel mode 25-35s — the actual "retargeting" manoeuvre, per
-// Main.m's own alpha schedule) is almost invisible if spread proportionally
-// across the whole loop, since it's ~0.04% of the ~85000s run. Krittin:
-// "slow down the first 35 sec... so people can see the satellite
-// retargeting phase... and the rest can speed up like this speed" — so
-// T_SPLIT_SIM gets its own, much slower, wall-clock allowance (DUR_SLOW),
-// and everything after it keeps the original pacing (DUR_FAST, same ~1890
-// sim-s/wall-s as before this change).
-const T_SPLIT_SIM = 35; // seconds of real sim time where the slow segment ends (Main.m's alpha ramp finishes here)
-const DUR_SLOW = 8; // wall-clock seconds for [0, T_SPLIT_SIM]
-const DUR_FAST = 45; // wall-clock seconds for [T_SPLIT_SIM, tMax] — the old overall pace
-const LOOP_SECONDS = DUR_SLOW + DUR_FAST; // one-way sweep of the whole run
+// Keep the original slow rate (35 simulation seconds per 8 playback seconds)
+// through the first 100 s, covering retargeting and the subsequent settling.
+// Both plots retain their 0–100 s window until this slow segment ends.
+const T_SPLIT_SIM = 100;
+const DUR_SLOW = T_SPLIT_SIM * (8 / 35); // about 22.9 wall-clock seconds
+const DUR_FAST = 45 * 1.5; // RW playback at two-thirds of its previous speed
+const CHART_ZOOM_SECONDS = 2;
+const LOOP_SECONDS = DUR_SLOW + CHART_ZOOM_SECONDS + DUR_FAST;
+const END_HOLD_SECONDS = 1;
 
 // wallT in [0, LOOP_SECONDS] -> real sim time, piecewise-linear per above.
 function simTimeFromWall(wallT, tMax) {
   if (wallT <= DUR_SLOW) return (wallT / DUR_SLOW) * T_SPLIT_SIM;
-  const frac = (wallT - DUR_SLOW) / DUR_FAST;
+  if (wallT <= DUR_SLOW + CHART_ZOOM_SECONDS) return T_SPLIT_SIM;
+  const frac = (wallT - DUR_SLOW - CHART_ZOOM_SECONDS) / DUR_FAST;
   return T_SPLIT_SIM + frac * (tMax - T_SPLIT_SIM);
 }
 
-export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, chartOffEl, hudEl }) {
+function playbackTime(elapsedSeconds, tMax) {
+  const phase = elapsedSeconds % (LOOP_SECONDS + END_HOLD_SECONDS);
+  return simTimeFromWall(Math.min(phase, LOOP_SECONDS), tMax);
+}
+
+function chartZoomFromWall(elapsedSeconds) {
+  const phase = elapsedSeconds % (LOOP_SECONDS + END_HOLD_SECONDS);
+  return clamp((phase - DUR_SLOW) / CHART_ZOOM_SECONDS, 0, 1);
+}
+
+export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, chartOffEl, chartGimbalEl, chartSingularityEl, chartTorqueEl, hudEl }) {
   if (!canvas) return;
 
-  const [data, offData] = await Promise.all([loadCsv(dataUrl), loadCsv(offDataUrl)]);
+  const [rawData, rawOffData] = await Promise.all([loadCsv(dataUrl), loadCsv(offDataUrl)]);
+  // The new MATLAB exports use SI units and contain all diagnostics on one
+  // time grid. Keep the visual's existing km and RPM readouts at this boundary.
+  const data = { ...rawData }, offData = { ...rawOffData };
+  if (rawData.omega_fw1) {
+    for (const axis of ["rx", "ry", "rz"]) data[axis] = rawData[axis].map((v) => v / 1000);
+    for (let k = 1; k <= 4; k++) {
+      data[`Omega${k}`] = rawData[`omega_fw${k}`].map((v) => v * 60 / (2 * Math.PI));
+      offData[`Omega${k}`] = rawOffData[`omega_fw${k}`].map((v) => v * 60 / (2 * Math.PI));
+    }
+  }
   const t = data.t;
   const tMax = t[t.length - 1];
 
   const onSeries = [1, 2, 3, 4].map((k) => data[`Omega${k}`]);
   const offSeries = [1, 2, 3, 4].map((k) => offData[`Omega${k}`]);
   const updateChartOn = chartOnEl ? buildChart(chartOnEl, t, onSeries, "Flywheel speed, MTQ desaturation on") : null;
-  const updateChartOff = chartOffEl ? buildChart(chartOffEl, t, offSeries, "Flywheel speed, MTQ desaturation off") : null;
+  const updateChartOff = chartOffEl ? buildChart(chartOffEl, offData.t, offSeries, "Flywheel speed, MTQ desaturation off") : null;
+  const diagnosticUpdates = [];
+  if (chartGimbalEl && rawData.delta_dot1) {
+    diagnosticUpdates.push(buildChart(chartGimbalEl, t,
+      [1, 2, 3, 4].map((k) => rawData[`delta_dot${k}`]), "Gimbal rates versus time, radians per second"));
+  }
+  if (chartSingularityEl && rawData.S_RW && rawData.S_CMG) {
+    diagnosticUpdates.push(buildChart(chartSingularityEl, t,
+      [rawData.S_RW, rawData.S_CMG], "S_RW and S_CMG singularity parameters versus time", ["#64ffe1", "#c9b46a"]));
+  }
+  if (chartTorqueEl && rawData.tau_dist_x && rawData.tau_mtq_x) {
+    const magnitude = (prefix) => t.map((_, i) =>
+      Math.hypot(rawData[`${prefix}_x`][i], rawData[`${prefix}_y`][i], rawData[`${prefix}_z`][i]) * 1e6);
+    diagnosticUpdates.push(buildChart(chartTorqueEl, t,
+      [magnitude("tau_dist"), magnitude("tau_mtq")], "Disturbance and MTQ torque magnitudes versus time, micronewton meters", ["#c9b46a", "#64ffe1"]));
+  }
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 50);
-  // Static, deliberately — every scene on this site keeps the camera fixed
-  // and lets the subject move.
-  const CAM_EL = 24 * (Math.PI / 180);
-  const CAM_AZ = 38 * (Math.PI / 180);
   // Box half-diagonal is ~1.03 units and the axis/nadir indicators reach
   // ~1.3 — at this 32deg FOV that needs distance >~5.9 to clear all of it at
   // any rotation (half-frustum height = dist*tan(16deg)).
   const CAM_DIST = 6.2;
-  camera.position.set(
-    CAM_DIST * Math.cos(CAM_EL) * Math.sin(CAM_AZ),
-    CAM_DIST * Math.sin(CAM_EL),
-    CAM_DIST * Math.cos(CAM_EL) * Math.cos(CAM_AZ)
-  );
-  camera.lookAt(0, 0, 0);
+  camera.position.set(0, 0, CAM_DIST);
 
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -349,6 +397,7 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
     powerPreference: "high-performance",
   });
   renderer.setClearColor(0x000000, 0);
+  renderer.autoClear = false;
   const pixelRatioFor = (w, h) =>
     Math.max(0.75, Math.min(window.devicePixelRatio || 1, 1.4, Math.sqrt(1200000 / Math.max(1, w * h))));
 
@@ -370,6 +419,66 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
   });
 
   scene.add(bodyGroup);
+
+  // Exported ECI coordinates, with one Earth radius per scene unit. The
+  // homepage Earth has procedural geography; its surface orientation is
+  // illustrative, not an epoch-aligned geographic ground track.
+  const EARTH_RADIUS_KM = 6371;
+  const orbitScene = new THREE.Scene();
+  const orbitCamera = new THREE.PerspectiveCamera(38, 1, 0.1, 30);
+  orbitCamera.up.set(0, 0, 1);
+  // Slightly larger than the nominal unit sphere so the globe reads clearly
+  // in the widened right rail while the LEO trajectory still clears its limb.
+  const earth = createEarthModel(renderer, 1.05);
+  earth.planet.uniforms.uBrightness.value = 0.48;
+  earth.clouds.uniforms.uFade.value = 0.45;
+  earth.group.rotation.x = Math.PI / 2; // model north (+Y) -> ECI north (+Z)
+  orbitScene.add(earth.group);
+
+  const orbitPoints = t.map((_, i) => new THREE.Vector3(data.rx[i], data.ry[i], data.rz[i])
+    .divideScalar(EARTH_RADIUS_KM));
+  // Keep only a small framing margin so the Earth fills the overview and the
+  // gap before the aligned MTQ plot does not become visually empty.
+  const orbitExtent = orbitPoints.reduce((extent, point) => Math.max(extent, point.length()), 1) + 0.08;
+  const trajectoryGeometry = new LineGeometry();
+  trajectoryGeometry.setPositions(orbitPoints.flatMap((point) => point.toArray()));
+  const trajectoryMaterial = new LineMaterial({
+    color: 0x9adbd4, linewidth: 2.2, transparent: true, opacity: 0.75, depthWrite: false,
+  });
+  orbitScene.add(new Line2(trajectoryGeometry, trajectoryMaterial));
+  // The brighter trace grows with the charts and exposes the playback position.
+  const travelledGeometry = trajectoryGeometry.clone();
+  const travelledMaterial = new LineMaterial({
+    color: 0x64ffe1, linewidth: 3.2, transparent: true, opacity: 0.95, depthWrite: false,
+  });
+  const travelled = new Line2(travelledGeometry, travelledMaterial);
+  orbitScene.add(travelled);
+  // The same 12U bus as the close-up, enlarged for legibility while its
+  // center follows the real orbit. Its attitude uses the same quaternion.
+  const positionMarker = bodyGroup.children[0].clone();
+  positionMarker.scale.setScalar(0.065);
+  // Independent materials keep the close-up's original appearance intact.
+  positionMarker.children[0].material = [0xe6d49d, 0xbda569, 0xf5e6bf, 0x9d8856, 0xd5bd80, 0xc8b175]
+    .map((color) => new THREE.MeshBasicMaterial({ color }));
+  orbitScene.add(positionMarker);
+  const positionReticle = new THREE.Mesh(
+    new THREE.RingGeometry(0.078, 0.088, 40),
+    new THREE.MeshBasicMaterial({ color: 0x64ffe1, side: THREE.DoubleSide, depthWrite: false })
+  );
+  orbitScene.add(positionReticle);
+  // Oblique perspective exposes depth and front/back occlusion. Dragging
+  // changes only the observer's view, never the simulated coordinates.
+  const firstDirection = orbitPoints[0].clone().normalize();
+  const planeSample = orbitPoints.find((point) =>
+    new THREE.Vector3().crossVectors(firstDirection, point.clone().normalize()).length() > 0.2);
+  const orbitNormal = new THREE.Vector3().crossVectors(firstDirection, planeSample || orbitPoints[1]).normalize();
+  orbitCamera.position.copy(orbitNormal).multiplyScalar(3).addScaledVector(firstDirection, 4);
+  orbitCamera.lookAt(0, 0, 0);
+  const orbitControls = new OrbitControls(orbitCamera, canvas.parentElement.querySelector(".cmg-orbit-controls"));
+  orbitControls.enablePan = false;
+  orbitControls.enableZoom = false;
+  orbitControls.enableDamping = false;
+  orbitControls.rotateSpeed = 0.65;
 
   // ---- nadir direction — real orbital position, inertial/world frame (NOT
   // a child of bodyGroup, same as the body-fixed axes above vs. the
@@ -401,6 +510,10 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
     const rx = data.rx[i0] + (data.rx[i1] - data.rx[i0]) * frac;
     const ry = data.ry[i0] + (data.ry[i1] - data.ry[i0]) * frac;
     const rz = data.rz[i0] + (data.rz[i1] - data.rz[i0]) * frac;
+    positionMarker.position.set(rx, ry, rz).divideScalar(EARTH_RADIUS_KM);
+    positionMarker.quaternion.copy(bodyGroup.quaternion);
+    positionReticle.position.copy(positionMarker.position);
+    travelledGeometry.instanceCount = i0;
     rVec.set(rx, ry, rz).normalize().negate();
     nadirArrow.setDirection(rVec);
     nadirLabel.position.copy(rVec).multiplyScalar(NADIR_LEN + 0.15);
@@ -416,31 +529,87 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
     const ry = data.ry[i0] + (data.ry[i1] - data.ry[i0]) * frac;
     const rz = data.rz[i0] + (data.rz[i1] - data.rz[i0]) * frac;
     hudEl.textContent =
-      `t = ${simTime.toFixed(1)} s\n` +
+      `ECI · t = ${simTime.toFixed(1)} s\n` +
       `X ${rx.toFixed(1).padStart(9)} km\n` +
       `Y ${ry.toFixed(1).padStart(9)} km\n` +
       `Z ${rz.toFixed(1).padStart(9)} km`;
+  }
+
+  // Two scissored views share one WebGL context and the same simulation clock.
+  let views = [];
+  function renderViews() {
+    // Both views use the same ECI camera basis. Recenter the close-up on
+    // the bus while preserving the orbit camera's orientation, so -r (nadir)
+    // has the same screen direction as satellite -> Earth in the overview.
+    // Apply before every render, including first paint, resize and dragging.
+    // Keep the exported attitude intact: +Y_B slews toward nadir in this run.
+    camera.quaternion.copy(orbitCamera.quaternion);
+    camera.up.copy(orbitCamera.up);
+    camera.position.set(0, 0, CAM_DIST / Math.min(1, camera.aspect))
+      .applyQuaternion(orbitCamera.quaternion);
+    positionReticle.quaternion.copy(orbitCamera.quaternion);
+    renderer.setScissorTest(false);
+    renderer.clear();
+    renderer.setScissorTest(true);
+    for (const view of views) {
+      renderer.setViewport(view.x, view.y, view.w, view.h);
+      renderer.setScissor(view.x, view.y, view.w, view.h);
+      renderer.render(view.scene, view.camera);
+    }
+    renderer.setScissorTest(false);
   }
 
   // ---- resize: the canvas fills whatever box style.css gives it
   // (.detail-media-inner), same approach as js/system-scene.js's resize().
   function resize() {
     const w = canvas.clientWidth;
+    const stacked = canvas.dataset.layout === "stacked" || w <= 680;
+    canvas.parentElement.classList.toggle("cmg-animation--stacked", stacked);
     const h = canvas.clientHeight;
     if (!w || !h) return;
-    camera.aspect = w / h;
+    const contentH = h - 110;
+    const panelH = stacked ? contentH / 2 : contentH;
+    const viewH = panelH - 56;
+    const orbitW = stacked ? w : Math.floor(w * 0.60);
+    const attitudeW = stacked ? w : w - orbitW;
+    trajectoryMaterial.resolution.set(orbitW, viewH);
+    travelledMaterial.resolution.set(orbitW, viewH);
+    camera.aspect = attitudeW / viewH;
+    // Fit the full axes at narrow widths as well as in the desktop split.
+    camera.position.setLength(CAM_DIST / Math.min(1, camera.aspect));
     camera.updateProjectionMatrix();
+    orbitCamera.aspect = orbitW / viewH;
+    const limitingAngle = Math.atan(Math.tan(19 * Math.PI / 180) * Math.min(1, orbitCamera.aspect));
+    orbitCamera.position.setLength(orbitExtent / Math.sin(limitingAngle));
+    orbitCamera.updateProjectionMatrix();
+    orbitControls.update();
+    // In the thesis composition the close-up occupies the upper half and the
+    // Earth/orbit overview the lower half, so the satellite is visibly on top
+    // of Earth in the right-hand rail.
+    views = [
+      { scene, camera, x: stacked ? 0 : orbitW, y: stacked ? h - panelH : h - panelH, w: attitudeW, h: viewH },
+      { scene: orbitScene, camera: orbitCamera, x: 0, y: stacked ? 110 : h - panelH, w: orbitW, h: viewH },
+    ];
     renderer.setPixelRatio(pixelRatioFor(w, h));
     renderer.setSize(w, h, false);
-    renderer.render(scene, camera);
+    renderViews();
   }
 
   update(0); // settle to a pose before the first paint either way
   updateChartOn && updateChartOn(0);
   updateChartOff && updateChartOff(0);
+  diagnosticUpdates.forEach((updateChart) => updateChart(0));
   updateHud(0);
   resize();
   window.addEventListener("resize", resize);
+  // The canvas no longer has a fixed height on thesis.html — it fills the two
+  // grid rows it spans, so a webfont landing or a chart's SVG being inserted
+  // changes it with no window resize to hear about. Watch the element itself.
+  // `setSize(w, h, false)` never writes the canvas's CSS size back, so this
+  // cannot feed itself.
+  if ("ResizeObserver" in window) new ResizeObserver(() => resize()).observe(canvas);
+  // Direct redraw also keeps dragging usable with reduced motion enabled.
+  orbitControls.addEventListener("change", renderViews);
 
   // Static settle, no loop — same rule every scene on this site follows.
   if (REDUCED) return;
@@ -449,31 +618,38 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
   let visible = false;
   let lastDraw = 0;
   let lastChartUpdate = 0;
+  let previousTick = null;
+  let elapsedSeconds = 0;
+  let previousSimTime = 0;
+  let previousZoom = 0;
   const FRAME_INTERVAL = 1000 / 30;
 
   function tick(now) {
     frame = requestAnimationFrame(tick);
     if (lastDraw && now - lastDraw < FRAME_INTERVAL * 0.9) return;
     lastDraw = now;
-    // Ping-pong the whole run across LOOP_SECONDS of wall-clock time — no
-    // jump-cut at the loop point (start/end attitude don't match), and the
-    // charts naturally grow/recede with the same clock since they only draw
-    // samples up to the current simTime.
-    const period = 2 * LOOP_SECONDS;
-    const phase = (now / 1000) % period;
-    const wallT = phase <= LOOP_SECONDS ? phase : period - phase;
-    const simTime = simTimeFromWall(wallT, tMax);
+    // Start at zero when first visible and pause the clock offscreen.
+    if (previousTick !== null) elapsedSeconds += (now - previousTick) / 1000;
+    previousTick = now;
+    const simTime = playbackTime(elapsedSeconds, tMax);
+    const chartZoom = chartZoomFromWall(elapsedSeconds);
+    const zoomChanged = chartZoom !== previousZoom;
+    previousZoom = chartZoom;
+    const chartBoundary = simTime < previousSimTime ||
+      (previousSimTime <= T_SPLIT_SIM && simTime > T_SPLIT_SIM) ||
+      (previousSimTime < tMax && simTime === tMax);
+    previousSimTime = simTime;
 
     update(simTime); // body attitude + nadir — cheap, every frame
-    renderer.render(scene, camera);
+    renderViews();
 
-    // Chart/HUD redraw is throttled well below the 3D scene. Each chart now
-    // moves one clip rectangle over a prebuilt series instead of rebuilding
-    // thousands of SVG points, and shares this same simulation time.
-    if (now - lastChartUpdate > 160) {
+    // Animate the scale transition at the scene's 30 Hz, then return to the
+    // inexpensive chart/HUD cadence. The series points are never rebuilt.
+    if (chartBoundary || zoomChanged || now - lastChartUpdate > 160) {
       lastChartUpdate = now;
-      updateChartOn && updateChartOn(simTime);
-      updateChartOff && updateChartOff(simTime);
+      updateChartOn && updateChartOn(simTime, chartZoom);
+      updateChartOff && updateChartOff(simTime, chartZoom);
+      diagnosticUpdates.forEach((updateChart) => updateChart(simTime, chartZoom));
       updateHud(simTime);
     }
   }
@@ -482,6 +658,7 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
     frame = requestAnimationFrame(tick);
   }
   function stop() {
+    previousTick = null;
     if (frame === null) return;
     cancelAnimationFrame(frame);
     frame = null;
@@ -498,7 +675,9 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
       },
       { rootMargin: "120px" }
     );
-    io.observe(canvas);
+    // Charts now continue down a side column. Keep their shared clock active
+    // while any part of the thesis workspace is visible, not just the canvas.
+    io.observe(canvas.closest(".thesis-workspace") || canvas);
   } else {
     visible = true;
     start();
