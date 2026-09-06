@@ -165,15 +165,15 @@
 
     <div class="desc" data-reveal>
       <h3>focus</h3>
-      <p>A CubeSat often needs both rapid retargeting and precise pointing, but reaction wheels give one and control moment gyroscopes (CMGs) give the other, and most CubeSats do not have room for separate actuators of each type. Patankar's Hybrid Control Moment Gyroscope (HCMG) solves this with a single cluster of four gimbaled flywheels that switch between CMG mode for slewing and locked-gimbal reaction wheel mode for fine pointing, but it was only validated with no external disturbance torques. In orbit those disturbances constantly feed the flywheels torque they have to reject, drifting their speeds away from nominal until one hits its limit and loses control authority, so this thesis tests whether magnetorquers (MTQs) can desaturate that drift without interfering with the CMG-mode steering algorithm.</p>
+      <p>Modern CubeSats increasingly require more fine pointing and rapid retargeting capabilities, but reaction wheels give one and control moment gyroscopes (CMGs) give the other, and most CubeSats do not have room for separate actuators of each type. Patankar's Hybrid Control Moment Gyroscope (HCMG) solves this with a single cluster of four gimbaled flywheels that switch between CMG mode for slewing and locked-gimbal reaction wheel mode for fine pointing, but it was only validated with no external disturbance torques. In orbit those disturbances constantly feed the flywheels torque they have to reject, drifting their speeds away from nominal until one hits its limit and loses control authority, so this thesis tests whether magnetorquers (MTQs) can desaturate that drift without interfering with the CMG-mode steering algorithm.</p>
 
       <h3>approach</h3>
       <ul>
         <li><strong>simulation</strong>: a full nonlinear 6DOF attitude and orbit simulation built in MATLAB for a 12U Earth observing CubeSat (230 by 240 by 360 mm) in a sun-synchronous low Earth orbit</li>
         <li><strong>tracking controller</strong>: built an eigenaxis PD controller for nadir pointing, tracking a reference quaternion from the orbit's own local horizontal, local vertical (LVLH) frame. Feedback linearization cancels the satellite's gyroscopic coupling, and feedforward plus PD terms do the actual correcting</li>
         <li><strong>steering algorithm</strong>: commanded torque maps to gimbal rate and flywheel acceleration through a Generalized Singularity Robust (GSR) inverse plus a null motion term. A plain Singularity Robust inverse gets stuck in gimbal lock; GSR's time varying error matrix breaks out of it, and paired with the null motion term (which also biases the gimbals toward a good reaction wheel configuration before the mode switch) the two clear both hyperbolic and elliptic internal singularities</li>
-        <li><strong>disturbances</strong>: aerodynamic drag, J2 perturbation, and gravity gradient torque, computed against a tilted dipole geomagnetic field model rotated into inertial coordinates over time</li>
-        <li><strong>desaturation</strong>: MTQ desaturation runs on the cross product law, a commanded dipole moment built from the excess flywheel momentum crossed with the local magnetic field. It only runs in RW mode, so it never fights the CMG-mode steering algorithm</li>
+        <li><strong>disturbances</strong>: aerodynamic drag, J2 perturbation, and gravity gradient torque</li>
+        <li><strong>desaturation</strong>: MTQ desaturation runs on the cross product law using a tilted dipole model to determine local magnetic field strength, with a commanded dipole moment built from the excess flywheel momentum crossed with the magnetic field. It only runs in RW mode, so it never fights the CMG-mode steering algorithm</li>
         <li><strong>maneuver profile</strong>: rapid retargeting to nadir pointing in CMG mode, a 10 second cosine scheduled mode switch (the mode parameter running 1 to 0) into RW mode for precision pointing, then held for 15 orbits</li>
         <li><strong>comparison</strong>: two identical runs, one with MTQ disabled and one enabled, isolating its effect on flywheel speed, excess momentum, and pointing accuracy</li>
       </ul>
@@ -181,6 +181,11 @@
       <figure class="detail-figure detail-figure--inset align-left">
         <div class="detail-figure-media"><img loading="lazy" decoding="async" class="is-chart" src="../assets/images/projects/cmg-pyramid-configuration.png" alt="Four-CMG pyramid mounting, each wheel's spin, gimbal and output-torque axes labeled"></div>
         <figcaption>four-CMG pyramid array, spin, gimbal and torque axes</figcaption>
+      </figure>
+
+      <figure class="detail-figure detail-figure--inset align-right">
+        <div class="detail-figure-media"><img loading="lazy" decoding="async" src="../assets/images/projects/pyramid.png" alt="Singularity surface of four-CMG pyramid configuration, external surface on left, internal surface on right"></div>
+        <figcaption>singularity surface — external (left) internal (right)</figcaption>
       </figure>
 
       <!-- Krittin's own simulation block diagram, dropped into

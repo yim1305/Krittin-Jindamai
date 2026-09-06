@@ -1,77 +1,89 @@
-# Derives assets/data/cbf-run.csv — the playback file js/cbf-scene.js loads —
-# from Krittin's full Gazebo export, assets/data/robot_odom.csv. Re-run this if
-# the recording is ever replaced; nothing here invents data, it only selects,
-# thins and rewrites it.
-#
-# Why a derived file at all:
-#
-#  1. THE RECORDING CONTAINS TELEPORTS. robot_odom.csv is one 235 s capture in
-#     which the robot is repositioned 7 times (position AND yaw jump between
-#     consecutive 35 ms samples — up to 5 m, twice back to the origin). Played
-#     straight, the animation would look broken. Splitting the run at every step
-#     no 1 m/s robot could have made leaves 8 episodes; this exports ONE of them
-#     whole, never stitching two together.
-#
-#  2. SIZE. The full file is 596 KB of 17-digit doubles. Thinned to every 2nd
-#     sample (~14 Hz, still well above what a 0.44 m/s robot needs when the
-#     scene interpolates between samples at 30 fps) and rounded to 0.1 mm, the
-#     same run is ~25 KB.
-#
-#  3. YAW WRAPS. The source wraps at +/-pi. Linear interpolation across a wrap
-#     spins the robot a full turn in one frame, so yaw is unwrapped here into a
-#     continuous angle. The pose it describes is unchanged.
-#
-# Episode choice (SEG_START/SEG_END below): rows 4364-6071, t = 155.6-215.5 s.
-# Of the 8 episodes it is the longest (59.9 s), the longest-travelled (26.1 m),
-# and the least stalled (7% of samples under 5 cm/s, against 13% for the next
-# longest) — and it contains both the outward spiral tracking and the wall
-# interactions the barrier exists for.
-
+# Export every source sample in the requested 0-80 s window.
+# The recording contains a few discontinuous pose resets. The export replaces
+# each reset with a 1.5 s smooth bridge, then returns to the recorded pose.
+# This keeps playback continuous while preserving all timestamps and all
+# unmodified source poses outside each bridge.
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $src = Join-Path $root "assets\data\robot_odom.csv"
 $dst = Join-Path $root "assets\data\cbf-run.csv"
+$culture = [System.Globalization.CultureInfo]::InvariantCulture
+$endTime = 80.0
+$bridgeSeconds = 1.5
 
-$SEG_START = 4364   # 0-based index into the data rows (header excluded)
-$SEG_END = 6071
-$STRIDE = 2
-
-$rows = Get-Content $src | Select-Object -Skip 1
-$t = @(); $x = @(); $y = @(); $yaw = @()
-for ($i = $SEG_START; $i -le $SEG_END; $i++) {
-    $p = $rows[$i].Split(',')
-    $t += [double]$p[0]; $x += [double]$p[1]; $y += [double]$p[2]; $yaw += [double]$p[3]
+function Wrap-Angle([double]$angle) {
+    return [math]::Atan2([math]::Sin($angle), [math]::Cos($angle))
 }
 
-# Unwrap yaw into a continuous angle, then re-zero time to the episode start.
-$twoPi = 2 * [math]::PI
-for ($i = 1; $i -lt $yaw.Count; $i++) {
-    $d = $yaw[$i] - $yaw[$i-1]
-    while ($d -gt [math]::PI) { $yaw[$i] -= $twoPi; $d = $yaw[$i] - $yaw[$i-1] }
-    while ($d -lt -[math]::PI) { $yaw[$i] += $twoPi; $d = $yaw[$i] - $yaw[$i-1] }
+$source = @(Import-Csv $src | ForEach-Object {
+    [pscustomobject]@{
+        t = [double]::Parse($_.time, $culture)
+        x = [double]::Parse($_.x, $culture)
+        y = [double]::Parse($_.y, $culture)
+        yaw = [double]::Parse($_.yaw, $culture)
+    }
+})
+if ($source.Count -lt 2 -or $source[0].t -ne 0 -or $source[-1].t -lt $endTime) {
+    throw "The recording must cover the full 0-80 s window."
 }
-$t0 = $t[0]
 
-# Thin, always keeping the final sample so the loop ends where the run does.
-$keep = New-Object System.Collections.Generic.List[int]
-for ($i = 0; $i -lt $t.Count; $i += $STRIDE) { $keep.Add($i) }
-if ($keep[$keep.Count-1] -ne $t.Count - 1) { $keep.Add($t.Count - 1) }
+# Retain all source poses and insert the exact 80 s endpoint if needed.
+$samples = New-Object System.Collections.Generic.List[object]
+$previous = $null
+$unwrappedYaw = 0.0
+foreach ($row in $source) {
+    if ($null -ne $previous) {
+        $dt = $row.t - $previous.t
+        if ($dt -le 0) { throw "Source timestamps must strictly increase." }
+        $unwrappedYaw += Wrap-Angle ($row.yaw - $previous.yaw)
+    } else {
+        $unwrappedYaw = $row.yaw
+    }
+
+    if ($row.t -gt $endTime) {
+        $fraction = ($endTime - $previous.t) / ($row.t - $previous.t)
+        $samples.Add([pscustomobject]@{
+            t = $endTime
+            x = $previous.x + ($row.x - $previous.x) * $fraction
+            y = $previous.y + ($row.y - $previous.y) * $fraction
+            yaw = $samples[-1].yaw + (Wrap-Angle ($row.yaw - $previous.yaw)) * $fraction
+        })
+        break
+    }
+
+    $samples.Add([pscustomobject]@{ t = $row.t; x = $row.x; y = $row.y; yaw = $unwrappedYaw })
+    if ($row.t -eq $endTime) { break }
+    $previous = $row
+}
+
+# Find large resets. Smoothstep blends from the last continuous pose to the
+# recorded trajectory 1.5 s after the reset, so animation remains continuous.
+$bridgeStarts = New-Object System.Collections.Generic.List[int]
+for ($i = 1; $i -lt $samples.Count; $i++) {
+    $dt = $samples[$i].t - $samples[$i - 1].t
+    $distance = [math]::Sqrt([math]::Pow($samples[$i].x - $samples[$i - 1].x, 2) + [math]::Pow($samples[$i].y - $samples[$i - 1].y, 2))
+    if ($distance -gt 0.15 -and $distance / $dt -gt 4) { $bridgeStarts.Add($i) }
+}
+foreach ($start in $bridgeStarts) {
+    $from = $samples[$start - 1]
+    $end = $start
+    while ($end -lt $samples.Count - 1 -and $samples[$end].t -lt $from.t + $bridgeSeconds) { $end++ }
+    $to = $samples[$end]
+    for ($i = $start; $i -lt $end; $i++) {
+        $u = ($samples[$i].t - $from.t) / ($to.t - $from.t)
+        $u = $u * $u * (3 - 2 * $u) # smoothstep
+        $samples[$i].x = $from.x + ($to.x - $from.x) * $u
+        $samples[$i].y = $from.y + ($to.y - $from.y) * $u
+        $samples[$i].yaw = $from.yaw + ($to.yaw - $from.yaw) * $u
+    }
+}
 
 $out = New-Object System.Collections.Generic.List[string]
 $out.Add("t,x,y,yaw")
-foreach ($i in $keep) {
-    $out.Add(("{0},{1},{2},{3}" -f `
-        [math]::Round($t[$i] - $t0, 3),
-        [math]::Round($x[$i], 4),
-        [math]::Round($y[$i], 4),
-        [math]::Round($yaw[$i], 4)))
+foreach ($sample in $samples) {
+    $out.Add([string]::Format($culture, "{0:0.000000},{1:0.0000},{2:0.0000},{3:0.0000}",
+        $sample.t, $sample.x, $sample.y, $sample.yaw))
 }
 [System.IO.File]::WriteAllLines($dst, $out, (New-Object System.Text.UTF8Encoding($false)))
-
-"wrote $dst"
-"  samples : $($keep.Count) (from $($t.Count) source rows, stride $STRIDE)"
-"  duration: $([math]::Round($t[$t.Count-1] - $t0, 2)) s"
-"  x range : $([math]::Round(($x | Measure-Object -Minimum).Minimum,3)) .. $([math]::Round(($x | Measure-Object -Maximum).Maximum,3))"
-"  y range : $([math]::Round(($y | Measure-Object -Minimum).Minimum,3)) .. $([math]::Round(($y | Measure-Object -Maximum).Maximum,3))"
-"  yaw     : $([math]::Round(($yaw | Measure-Object -Minimum).Minimum,3)) .. $([math]::Round(($yaw | Measure-Object -Maximum).Maximum,3)) rad (unwrapped)"
-"  size    : $([math]::Round((Get-Item $dst).Length / 1KB, 1)) KB"
+"Wrote $($samples.Count) samples, 0-80 s at 2x speed."
+"Smoothed $($bridgeStarts.Count) recorded pose resets over $bridgeSeconds s each."

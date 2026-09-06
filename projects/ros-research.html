@@ -57,19 +57,14 @@
     </div>
   </div>
 
-  <!-- Lead is the real Gazebo run (js/cbf-scene.js), the same way the CMG page
-       leads with its real MATLAB run: one continuous 60-second episode of
-       Krittin's 235-second ROS 2 capture, played back from assets/data/ with
-       the commanded spiral, the safe set and the path actually driven. Not a
-       reconstruction — the pose in every frame is a recorded sample. The two
-       Gazebo stills he had here before now sit in .desc below, where the
-       written approach can point at them. Transparent box, like the CMG
-       animation: Krittin, of that one — "no border around or anything, just
-       have the plot and animation by itself". -->
+  <!-- Recorded poses from 0-80 s at 2x speed. The exporter smooths the
+       capture's reset transitions for continuous playback. The HUD reports
+       signed distance to the supplied safe set, including crossings.
+       The two Gazebo stills remain below in the written project description. -->
   <div class="detail-media">
     <div class="detail-media-inner detail-media-inner--transparent cbf-animation">
-      <canvas id="cbf-canvas" role="img" aria-label="Recorded Gazebo run: a TurtleBot3 Burger tracking a spiral reference inside a rectangular safe set, its driven path drawn behind it, the safe-set markers brightening as its look-ahead point closes on a wall"></canvas>
-      <div class="cbf-view-label">Gazebo run <span>TurtleBot3 Burger · CBF-QP safety filter · 60 s episode at 2× speed</span></div>
+      <canvas id="cbf-canvas" role="img" aria-label="Animated CBF simulation playback at twice speed"></canvas>
+      <div class="cbf-view-label"><span>2× speed</span></div>
       <div class="cbf-legend">
         <span class="cbf-key cbf-key--path">path driven</span>
         <span class="cbf-key cbf-key--ref">commanded spiral</span>
@@ -84,7 +79,7 @@
     <div class="facts" data-reveal>
       <div class="fact-block">
         <div class="fact-label">PI</div>
-        <div class="fact-value">Dr. Rushikesh Kamalapurkar<br>Dr. Warren E. Dixon</div>
+        <div class="fact-value">Dr. Rushikesh Kamalapurkar<br>Dr. Warren Dixon</div>
       </div>
       <div class="fact-block">
         <div class="fact-label">supervisor</div>
@@ -155,10 +150,10 @@
         if (mounted) return;
         mounted = true;
         try {
-          const { initCbfScene } = await import("../js/cbf-scene.js?v=20260906c");
+          const { initCbfScene } = await import("../js/cbf-scene.js?v=20260906h");
           await initCbfScene({
             canvas,
-            runUrl: "../assets/data/cbf-run.csv",
+            runUrl: "../assets/data/cbf-run.csv?v=20260906h",
             spiralUrl: "../assets/data/spiral_geometry.csv",
             wallsUrl: "../assets/data/walls.csv",
             hudEl: document.getElementById("cbf-hud"),

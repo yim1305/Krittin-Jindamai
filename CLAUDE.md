@@ -188,8 +188,8 @@ matches rows to objects by href, so reordering needs no change there.
 
 | Project | Year | File | Model / where |
 |---|---|---|---|
-| Non Holonomic CBF | 2026 | `ros-research.html` | TurtleBot at Earth's limb |
 | Hybrid CMG Desaturation | 2026 | `thesis.html` | the hero's satellite, between the bodies |
+| Non Holonomic CBF | 2026 | `ros-research.html` | TurtleBot at Earth's limb |
 | Project TerraGator | 2026 | `rocket-airbrake.html` | Space Shuttle, outbound climb |
 | Project Navigator | 2025 | `rocket-software.html` | SLS, on the way home |
 | Sky Crane | 2025 | `controls-final-project.html` | octagonal deck + 4 thrusters, hovering |
@@ -265,20 +265,23 @@ what Krittin saw) disagree; `cmg` keeps midpoint **fx**, raises **fy** till equi
 ## The CBF run — `js/cbf-scene.js`, ros-research.html's lead
 
 Krittin's real Gazebo capture under a fixed camera: floor grid, commanded
-spiral, safe set as four markers, TurtleBot, driven path. Rationale lives in the
+spiral, safe set as four markers, TurtleBot, driven path. Rationale is in the
 module header and `assets/data/README.md`; the rules that bite:
 
-- **`robot_odom.csv` is 8 episodes, not one run** (7 repositions jump the pose
-  between 35 ms samples). Play `cbf-run.csv`, which `scripts/export-cbf-run.ps1`
-  derives — **never stitch two episodes**. **Reverse driving is real** (18% of
-  moving samples, course = yaw + π), and the look-ahead point grazes a few cm
-  out (min h = −0.018 m) — never claim h ≥ 0 strictly.
-- **The camera is solved, not placed** — `fitCamera()` contains the whole
-  5.5 × 13.5 m room at any aspect. Elevation and azimuth both cost scale;
-  50°/8° gives ~63 px/m at 1120 px and the room's length sets the canvas
-  aspect, so re-check numerically before nudging either. Robot **drawn 4x**
-  (1:1 is nine pixels), disclosed in the legend. Trail grows via
-  `instanceCount` on its `Line2`, never a rebuilt buffer.
+- **Playback covers 0-80 s at 2x** (40 s plus a 1.2 s end hold), per
+  Krittin's request. `scripts/export-cbf-run.ps1` retains every source row in
+  that window, unwraps yaw, and interpolates an exact 80 s endpoint. The three
+  reset transitions are visually smoothed over 1.5 s, so the robot and trail
+  remain continuous. Source timestamps and all poses outside those bridges
+  remain intact; bridge poses are intentionally derived. **Reverse driving is
+  real**; preserve the recorded heading.
+- **The HUD reports signed distance to the safe set**; marker brightness
+  indicates proximity, not QP activation.
+- **The camera is solved, not placed** — `fitCamera()` contains the 5.5 × 13.5 m
+  room at any aspect. Elevation and azimuth both cost scale; 50°/8° gives
+  ~63 px/m at 1120 px and the room's length sets the canvas aspect, so re-check
+  numerically before nudging either. Robot **drawn 4x** (1:1 is nine pixels),
+  disclosed in the legend. Trail grows via `instanceCount`, never a rebuild.
 
 ## Content status — do not fabricate any of this
 

@@ -1,38 +1,29 @@
 # Animation Data for TurtleBot3 CBF Simulation
 
-> **What the site actually loads** (added when `js/cbf-scene.js` was built):
-> `cbf-run.csv`, `spiral_geometry.csv` and `walls.csv`. `robot_odom.csv` is the
-> source capture and is no longer fetched by any page — it stays here as the
-> thing `cbf-run.csv` is derived from.
->
-> ### `cbf-run.csv` — the playback file
-> Written by `scripts/export-cbf-run.ps1` (re-run it if the capture is
-> replaced). Columns `t,x,y,yaw`; 855 samples, ~14 Hz, 59.86 s, 25 KB. It is
-> one continuous episode of `robot_odom.csv` — rows 4364–6071, t = 155.6–215.5 s
-> — with time re-zeroed, yaw unwrapped, and every second sample kept.
->
-> Three things about the source that this file exists to deal with, and that
-> anyone reading `robot_odom.csv` should know:
->
-> 1. **The capture is 235.8 s and 6,644 rows, not 130 s and 3,650.** The
->    numbers in the "Usage for animation" sections below describe an earlier
->    export; the file currently here is longer.
-> 2. **It contains seven repositions.** Position *and* yaw jump between
->    consecutive 35 ms samples — by as much as 5 m, twice back to exactly
->    (0, 0) — then continue smoothly from the new pose. Split at every step no
->    1 m/s robot could have made, the capture is 8 episodes, not one run. Played
->    straight through, an animation teleports.
-> 3. **`yaw` is a true heading, and the robot does drive backwards.** Compared
->    against the course angle from consecutive positions, the error is bimodal:
->    82% of moving samples within 36°, 18% at 180°. Reverse is the filter doing
->    its job, not a frame or sign error — do not "fix" it.
->
-> Two more measured facts the scene depends on: the look-ahead point (0.15 m
-> ahead of centre) dips a few centimetres past the nominal rectangle at its
-> worst (min h = −0.018 m in this episode, −0.095 m across the whole capture),
-> so the page says the barrier *keeps the robot inside the safe set*, never that
-> h is strictly non-negative. And the reference spiral leaves the room on
-> purpose: only 163 of its 300 points are inside the rectangle.
+## Current playback
+
+The page loads `cbf-run.csv`, `spiral_geometry.csv`, and `walls.csv`.
+The source `robot_odom.csv` has 3,232 samples spanning 0-116.438 s.
+
+`scripts/export-cbf-run.ps1` exports **0-80 s**, retaining all 2,225 source
+samples in that window and adding one interpolated sample at exactly 80 s.
+The animation plays these 2,226 samples at **2× speed**, taking **40 seconds**,
+then holds the final pose for 1.2 seconds before restarting.
+
+Columns: `t,x,y,yaw`. Time retains the source origin, rounded to 1 us;
+positions and unwrapped yaw are rounded to four decimal places. The opening
+pose is (0.0189, 0.0223) m, close to the room center.
+
+The raw capture contains three large pose resets. The export blends each reset
+into the recorded trajectory over 1.5 seconds with a smoothstep curve, so the
+robot and orange trail remain continuous. Source timestamps and all samples
+outside the blend windows are preserved; positions and headings within those
+short blend windows are visual smoothing rather than raw recorded poses.
+
+## Original export reference
+
+The notes below came with an earlier export. Capture durations and sample
+counts below are historical; the current recording and playback are above.
 
 This directory contains CSV files exported from a 130-second ROS 2 + Gazebo simulation run featuring:
 - TurtleBot3 Burger robot with spiral trajectory tracking

@@ -1,24 +1,29 @@
 // --------------------------------------------------------------------------
 // CBF project page — the real Gazebo run, not a synthetic stand-in.
 //
-// Krittin recorded a 235-second ROS 2 + Gazebo Harmonic run of a TurtleBot3
-// Burger tracking a reference spiral under a CBF-QP safety filter, and exported
-// it to assets/data/ (see the README there):
-//   robot_odom.csv      the full capture, ~28 Hz: t, x, y, yaw, and velocity
-//                       columns the DiffDrive plugin left at zero
+// Krittin recorded a ROS 2 + Gazebo Harmonic run of a TurtleBot3 Burger
+// tracking a reference spiral under a CBF-QP safety filter, and exported it to
+// assets/data/ (see the README there):
+//   robot_odom.csv      the capture, ~28 Hz over 116.4 s: t, x, y, yaw, and
+//                       velocity columns the DiffDrive plugin left at zero
 //   spiral_geometry.csv 300 points of the COMMANDED path, which deliberately
 //                       spirals out past the room — that is what the filter has
 //                       to refuse to follow
 //   walls.csv           the safe rectangle the barrier is built from,
 //                       [-2.75, 2.75] x [-6.75, 6.75] m
-//   cbf-run.csv         what this file actually plays: one continuous episode
-//                       of the capture, thinned and yaw-unwrapped by
-//                       scripts/export-cbf-run.ps1 (the reasoning is in there —
-//                       in short, the raw capture contains seven repositions
-//                       that would look like teleports, and 596 KB is too much
-//                       to ship for a page decoration)
+//   cbf-run.csv         all samples from 0 to 80 s of the capture, exported
+//                       by scripts/export-cbf-run.ps1 with unwrapped yaw and
+//                       an interpolated endpoint at exactly 80 s.
 //
-// The camera never moves. It is a fixed instrument view of the whole safe set,
+// The raw capture contains three abrupt pose resets. The exporter smooths each
+// over 1.5 s, then resumes the recorded trajectory, so this visual playback
+// stays continuous without dropping timestamps or subsequent data.
+//
+// The 0.15 m look-ahead point crosses the supplied safe-set boundary in this
+// window. The HUD preserves negative h; marker brightness measures proximity,
+// not QP activation (which is not included in the source CSV).
+//
+// // The camera never moves. It is a fixed instrument view of the whole safe set,
 // tilted enough that the boundary markers and the robot have real height while
 // the spiral stays as legible as it would be on a plan.
 //
@@ -110,8 +115,7 @@ const LOOKAHEAD = 0.15;
 const ROBOT_EXAGGERATION = 4;
 const BURGER_RADIUS = 0.069;
 
-// 60 s of run in 30 s of page. Fast enough to hold attention, slow enough that
-// a 0.44 m/s robot still reads as a small careful machine.
+// The complete 0-80 s window plays at 2x, then briefly holds before restarting.
 const PLAYBACK_RATE = 2;
 const END_HOLD_SECONDS = 1.2;
 
@@ -431,7 +435,7 @@ export async function initCbfScene({ canvas, runUrl, spiralUrl, wallsUrl, hudEl 
   }
 
   // ---- pose. Position and the unwrapped yaw are interpolated between the two
-  // bracketing samples, so 14 Hz data plays back smoothly at 30 fps. Yaw is
+  // bracketing samples, so recorded data plays back smoothly at 30 fps. Yaw is
   // unwrapped in the exported CSV precisely so this can be a plain lerp.
   const lookahead = { x: 0, y: 0 };
   const pose = { x: 0, y: 0, yaw: 0 };
@@ -456,8 +460,8 @@ export async function initCbfScene({ canvas, runUrl, spiralUrl, wallsUrl, hudEl 
 
     for (const wall of walls) {
       const h = wall.distance(lookahead);
-      // 1 at the barrier, 0 once comfortably clear — the marker states how much
-      // of the constraint is live, rather than blinking on a threshold.
+      // Proximity only: the CSV has no QP activation telemetry. Values below
+      // zero remain visible in the HUD when the recorded pose leaves the set.
       const proximity = clamp(1 - h / NEAR_WALL, 0, 1);
       wallColor.setHex(GRAPHITE).lerp(BONE_COLOR, proximity);
       wall.material.color.copy(wallColor);
@@ -568,7 +572,7 @@ export async function initCbfScene({ canvas, runUrl, spiralUrl, wallsUrl, hudEl 
           else stop();
         });
       },
-      { rootMargin: "120px" }
+      { rootMargin: "0px" }
     );
     io.observe(canvas);
   } else {
