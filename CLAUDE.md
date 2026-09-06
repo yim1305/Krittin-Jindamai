@@ -29,9 +29,11 @@ assets/                 images/ (nebula-backdrop.webp, about media), papers/, da
 ## Local dev
 
 ES modules mean **`file://` will not work** — serve over HTTP (`npx serve .`).
-Three.js r160 comes from unpkg via an import map in the `<head>` of every page
-with a scene (required — addons import the bare specifier `"three"`), so all
-four 3D scenes need a connection.
+Three.js r160 is vendored at `js/vendor/three/` (was unpkg — self-hosted so
+the hero's first paint doesn't wait on a third-party CDN; see the README
+there to update the version) and resolved via an import map in the `<head>`
+of every page with a scene (required — addons import the bare specifier
+`"three"`). No internet connection needed for the 3D scenes anymore.
 
 **Do not start a server or open a browser to verify changes** — Krittin checks
 visually himself and it loads his laptop. Reason about the code, state the

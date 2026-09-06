@@ -13,17 +13,29 @@
   <!-- In <head> and render-blocking, deliberately — see index.html. -->
   <script src="../js/main.js?v=20260906c"></script>
 
-  <!-- Import map for js/cmg-scene.js's "three" specifier — same CDN build
-       index.html's two scenes use, see the note there. Only this one detail
-       page needs it. -->
+  <!-- Import map for js/cmg-scene.js's "three" specifier — same vendored
+       copy index.html's two scenes use, see the note there. Only this one
+       detail page needs it. -->
   <script type="importmap">
   {
     "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.min.js",
-      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      "three": "../js/vendor/three/build/three.module.min.js",
+      "three/addons/": "../js/vendor/three/examples/jsm/"
     }
   }
   </script>
+
+  <!-- Warms cmg-scene.js's module graph in parallel with the rest of <head> —
+       it's this page's lead media, effectively always above the fold, unlike
+       system-scene.js's genuinely-lazy load. -->
+  <link rel="modulepreload" href="../js/vendor/three/build/three.module.min.js">
+  <link rel="modulepreload" href="../js/vendor/three/examples/jsm/controls/OrbitControls.js">
+  <link rel="modulepreload" href="../js/vendor/three/examples/jsm/lines/Line2.js">
+  <link rel="modulepreload" href="../js/vendor/three/examples/jsm/lines/LineGeometry.js">
+  <link rel="modulepreload" href="../js/vendor/three/examples/jsm/lines/LineMaterial.js">
+  <link rel="modulepreload" href="../js/vendor/three/examples/jsm/lines/LineSegments2.js">
+  <link rel="modulepreload" href="../js/vendor/three/examples/jsm/lines/LineSegmentsGeometry.js">
+  <link rel="modulepreload" href="../js/cmg-scene.js?v=20260906c">
 </head>
 <body class="thesis-page">
 

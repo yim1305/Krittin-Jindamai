@@ -8,7 +8,6 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://unpkg.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <!-- ?v= is a manual cache-buster, not a build hash — there is no build step.
        GitHub Pages' CDN (and browsers) can keep serving an OLDER style.css/
@@ -28,16 +27,27 @@
   <script src="js/main.js?v=20260906c"></script>
 
   <!-- Import map so orbit-scene.js's "three" / "three/addons/..." specifiers resolve
-       to the CDN build — required because OrbitControls.js itself imports the bare
-       "three" specifier internally. -->
+       to the vendored copy under js/vendor/ — required because OrbitControls.js
+       itself imports the bare "three" specifier internally. Self-hosted (was
+       unpkg) so the hero's first paint doesn't wait on a cold connection to a
+       third-party CDN; see js/vendor/three/README.md for how to update it. -->
   <script type="importmap">
   {
     "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.min.js",
-      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      "three": "js/vendor/three/build/three.module.min.js",
+      "three/addons/": "js/vendor/three/examples/jsm/"
     }
   }
   </script>
+
+  <!-- Warms the hero's module graph in parallel with the rest of <head>,
+       instead of only starting the fetch once startOrbitScene()'s dynamic
+       import() runs later in body. system-scene.js is intentionally left out
+       — it's lazy-loaded on approach to Projects and preloading it here would
+       compete with the hero for bandwidth, defeating that. -->
+  <link rel="modulepreload" href="js/vendor/three/build/three.module.min.js">
+  <link rel="modulepreload" href="js/vendor/three/examples/jsm/controls/OrbitControls.js">
+  <link rel="modulepreload" href="js/orbit-scene.js?v=20260906d">
 </head>
 <body>
 
@@ -755,7 +765,13 @@
       }
     }
 
-    function measureDisplayFrameMs(sampleCount = 12) {
+    // 5, not the original 12 — this runs in Promise.all alongside the scene's
+    // dynamic import(), and now that "three" is self-hosted (see the import
+    // map above) that import resolves fast enough that the 12-sample probe
+    // itself had become the slower half of the pair, adding a visible ~200ms
+    // of blank canvas after first paint on every load. 5 still gives the
+    // median an odd count to reject one outlier frame, at under half the wait.
+    function measureDisplayFrameMs(sampleCount = 5) {
       return new Promise((resolve) => {
         const samples = [];
         let previous = 0;
