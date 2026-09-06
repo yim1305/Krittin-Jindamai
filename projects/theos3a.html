@@ -41,8 +41,15 @@
     <div class="detail-sub">Primary structure analysis, meshing, and modal and static load analysis for Thailand's THEOS-3A Earth observation satellite</div>
   </div>
 
+  <!-- Lead photo is GISTDA's own THEOS-3A press image, not Krittin's —
+       credited and linked back to the source article rather than presented
+       as his. Caption styled inline to match .detail-figure figcaption
+       exactly, since this box isn't a .detail-figure. -->
   <div class="detail-media">
-    <div class="detail-media-inner">[ project video / image gallery — replace with an &lt;img&gt; or &lt;video&gt; ]</div>
+    <div class="detail-media-inner" style="min-height:0; max-height:none; width:45%; max-width:420px; margin:0 auto;">
+      <img loading="lazy" decoding="async" src="../assets/images/projects/THEOS.png" alt="THEOS-3A, Thailand's first fully domestically developed and integrated satellite" style="width:100%; height:auto; object-fit:contain; display:block;">
+    </div>
+    <div style="width:45%; max-width:420px; margin:10px auto 0; font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--graphite);">image source: <a href="https://www.gistda.or.th/news_view.php?n_id=8789&amp;lang=EN" target="_blank" rel="noopener" style="color:inherit;">GISTDA</a></div>
   </div>
 
   <div class="detail-body">
@@ -56,6 +63,10 @@
         <div class="fact-value">Mechanical and Testing Engineering Intern</div>
       </div>
       <div class="fact-block">
+        <div class="fact-label">supervisor</div>
+        <div class="fact-value">Panachai Santananukarn<br>Atipat Wattananuchai</div>
+      </div>
+      <div class="fact-block">
         <div class="fact-label">tools &amp; methods</div>
         <div class="tag-row">
           <div class="tag">HyperMesh</div>
@@ -67,11 +78,18 @@
 
     <div class="desc" data-reveal>
       <h3>overview</h3>
-      <p>[Placeholder paragraph — what the project was, the motivating problem, and why it mattered.]</p>
+      <p>THEOS-3A is the first satellite to be fully developed, manufactured, and integrated in Thailand. The program is currently in its development stage, with the engineering model under construction. I was tasked with running static and modal load analysis to verify that the engineering model would survive testing on the shaker system.</p>
+
       <h3>approach</h3>
-      <p>[Placeholder paragraph — technical approach, design decisions, and your specific contributions.]</p>
+      <ul>
+        <li>Meshed the entire satellite structure in HyperMesh</li>
+        <li>Cleaned up poor-quality mesh elements</li>
+        <li>Modeled joints using rigid and spring elements</li>
+        <li>Ran free-mode modal analysis, fixed-mode modal analysis, and static load analysis based on the SpaceX Rideshare Payload User's Guide</li>
+      </ul>
+
       <h3>results</h3>
-      <p>[Placeholder paragraph — outcomes, test data, or what was learned. This is the section a lab reviewer will read closest.]</p>
+      <p>Max shear stress, von Mises stress, and displacement all stayed within the structure's allowable strength limits. (Detailed simulation images and results from this project are not published here, per GISTDA's data policy.)</p>
     </div>
   </div>
 

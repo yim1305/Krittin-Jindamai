@@ -8,12 +8,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css?v=20260906m">
+  <link rel="stylesheet" href="../css/style.css?v=20260906z">
 
   <!-- In <head> and render-blocking, deliberately — see index.html. -->
   <script src="../js/main.js?v=20260906c"></script>
 </head>
-<body>
+<body class="terragator-page">
 
   <div class="nebula" id="nebula"></div>
 
@@ -38,7 +38,10 @@
   <div class="detail-header">
     <div class="eyebrow"><span class="dot"></span>project — 02</div>
     <h1 class="detail-title">Project TerraGator</h1>
-    <div class="detail-sub">Apogee Control System for Project TerraGator</div>
+    <div class="detail-sub">Apogee Control System for Project TerraGator — Dead Reckoning, Inertial Navigation, Kalman-Filter Sensor Fusion with Barometer and IMU, PID Controller, FEA, and CNC Manufacturing</div>
+    <div class="detail-cta">
+      <a class="paper-btn" href="https://github.com/yim1305/Project-Terragator-Software" target="_blank" rel="noopener">↗ view code</a>
+    </div>
   </div>
 
   <!-- Lead: the 14s flight/product video, by itself — Krittin: "add the
@@ -74,24 +77,7 @@
        on .cutout-row + `flex:1` on its own img) instead of sitting at its
        own shorter natural height like the other two. See .cutout-row in
        style.css. -->
-  <div class="cutout-row">
-    <figure class="cutout is-tall">
-      <img loading="lazy" decoding="async" src="../assets/images/projects/terragator.png" alt="Project TerraGator, finished rocket">
-      <figcaption>finished rocket</figcaption>
-    </figure>
-    <div class="cutout-stack">
-      <figure class="cutout">
-        <img loading="lazy" decoding="async" src="../assets/images/projects/acs.webp" alt="Apogee Control System assembly, airbrake deployed, wiring visible">
-        <figcaption>ACS assembly</figcaption>
-      </figure>
-      <figure class="cutout">
-        <img loading="lazy" decoding="async" src="../assets/images/projects/acs-2.webp" alt="Apogee Control System CAM-slot airbrake mechanism, close-up">
-        <figcaption>airbrake mechanism</figcaption>
-      </figure>
-    </div>
-  </div>
-
-  <div class="detail-body">
+  <div class="detail-body terragator-body">
     <div class="facts" data-reveal>
       <div class="fact-block">
         <div class="fact-label">timeframe</div>
@@ -100,6 +86,10 @@
       <div class="fact-block">
         <div class="fact-label">role</div>
         <div class="fact-value">Lead of Guidance Navigation and Control</div>
+      </div>
+      <div class="fact-block">
+        <div class="fact-label">supervisor</div>
+        <div class="fact-value">Dr. Sean R. Niemi</div>
       </div>
       <div class="fact-block">
         <div class="fact-label">tools &amp; methods</div>
@@ -122,20 +112,28 @@
          approach/results prose, so it's kept that way — "mechanical" and
          "electrical & software" instead of the usual three paragraphs. -->
     <div class="desc" data-reveal>
-      <h3>mechanical</h3>
+      <h3>focus</h3>
+      <p>Part of the criteria for the NASA USLI 2026 competition was to get as close to the apogee declared during CDR as possible. I was in charge of the Apogee Control System (ACS), designing, building, and manufacturing every aspect of the system across GNC, software, electrical, and mechanical engineering. We completed three successful flights within 20 ft of our target apogee.</p>
+
+      <h3>guidance, navigation &amp; control</h3>
       <ul>
-        <li>Designed Apogee Control System airbrake mechanism on Fusion 360 and SolidWorks</li>
-        <li>Manufactured all parts on lathe, mill, CNC, and waterjet</li>
-        <li>Performed Finite Element Analysis on the structure (static load and modal analysis) to verify structural integrity during actuation</li>
+        <li>Built a dead-reckoning inertial-navigation stack in which the IMU propagated motion between updates for position and attitude</li>
+        <li>Fused barometric altitude and inertial measurements with a Kalman filter to estimate position and velocity</li>
+        <li>Designed and tuned the PID controller that commanded the airbrake to control apogee, using MATLAB and Simulink simulations before implementing it on the flight computer</li>
       </ul>
 
-      <h3>electrical &amp; software</h3>
+      <h3>software &amp; electrical</h3>
       <ul>
-        <li>Built inertial navigation system using IMU, barometer, and Teensy 4.1, coded entirely in C++</li>
-        <li>Sensor fusion using Kalman Filter for orientation and position</li>
-        <li>Finite state machine for state detection</li>
-        <li>Control airbrake actuation using PID controller</li>
-        <li>Tuned PID gains with a custom MATLAB + Simulink simulation</li>
+        <li>Built the flight computer around a Teensy 4.1 with C++ drivers for the IMU and barometer</li>
+        <li>Implemented the sensor-fusion pipeline and a finite-state machine for launch, ascent, apogee, descent, and landing detection</li>
+        <li>Integrated the navigation estimates with the airbrake actuation and PID control loop for autonomous flight operation</li>
+      </ul>
+
+      <h3>mechanical design, analysis &amp; manufacturing</h3>
+      <ul>
+        <li>Designed the Apogee Control System airbrake mechanism in Fusion 360 and SolidWorks</li>
+        <li>Performed finite-element analysis, including static-load and modal analysis, to verify structural integrity during actuation</li>
+        <li>Manufactured components on the lathe, mill, CNC, and waterjet</li>
       </ul>
 
       <!-- The 2 results plots — Krittin: "ACS 3 and ACS 4 will go to the
@@ -144,12 +142,29 @@
            apogee is detected). -->
       <h3>results</h3>
       <figure class="detail-figure detail-figure--inset align-left">
-        <div class="detail-figure-media"><img loading="lazy" decoding="async" class="is-chart" src="../assets/images/projects/acs-3.png" alt="Flight altitude vs. time, actual against commanded apogee"></div>
+        <img loading="lazy" decoding="async" src="../assets/images/projects/terragator-altitude.svg?v=20260906b" alt="Static TerraGator flight altitude versus time, measured against commanded apogee">
         <figcaption>altitude vs. time — actual against commanded apogee</figcaption>
       </figure>
       <figure class="detail-figure detail-figure--inset align-right">
-        <div class="detail-figure-media"><img loading="lazy" decoding="async" class="is-chart" src="../assets/images/projects/acs-4.png" alt="Predicted apogee error vs. time, converging as apogee is detected"></div>
+        <img loading="lazy" decoding="async" src="../assets/images/projects/terragator-apogee-error.svg?v=20260906b" alt="Static TerraGator predicted apogee error versus time with apogee detection marker">
         <figcaption>predicted apogee error, converging as apogee is detected</figcaption>
+      </figure>
+    </div>
+
+    <div class="terragator-model-rail" data-reveal>
+      <figure class="cutout">
+        <img loading="lazy" decoding="async" src="../assets/images/projects/terragator.png" alt="Project TerraGator, finished rocket">
+        <figcaption>rocket</figcaption>
+      </figure>
+      <figure class="cutout terragator-acs">
+        <div class="terragator-acs-frame">
+          <img loading="lazy" decoding="async" src="../assets/images/projects/acs.webp" alt="Apogee Control System assembly, airbrake deployed, wiring visible">
+        </div>
+        <figcaption>ACS</figcaption>
+      </figure>
+      <figure class="cutout">
+        <img loading="lazy" decoding="async" src="../assets/images/projects/acs-2.webp" alt="Apogee Control System CAM-slot airbrake mechanism, close-up">
+        <figcaption>airbrake mechanism</figcaption>
       </figure>
     </div>
   </div>

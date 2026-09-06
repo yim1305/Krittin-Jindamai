@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 430" role="img" aria-labelledby="title desc">
+  <title id="title">TerraGator predicted apogee error</title>
+  <desc id="desc">Static predicted apogee error trace with zero error and apogee detection markers.</desc>
+  <g stroke="#aeb8b5" stroke-width="2"><path d="M90 54V354H710"/></g>
+  <path d="M90 279H710" stroke="#c9b46a" stroke-width="2"/>
+  <path d="M635 54V354" stroke="#c9b46a" stroke-width="2" stroke-dasharray="9 7"/>
+  <path d="M90 54 L104 58 L112 202 L132 210 L170 194 L215 198 L260 187 L310 196 L360 218 L410 245 L460 273 L510 295 L550 310 L585 309 L615 300 L635 311 L680 311 L710 311" fill="none" stroke="#64ffe1" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <g fill="#d8e0dd" font-family="monospace" font-size="16"><text x="78" y="59" text-anchor="end">100</text><text x="78" y="134" text-anchor="end">50</text><text x="78" y="209" text-anchor="end">0</text><text x="78" y="284" text-anchor="end">−50</text><text x="78" y="359" text-anchor="end">−100</text><text x="90" y="378" text-anchor="middle">11</text><text x="214" y="378" text-anchor="middle">13</text><text x="338" y="378" text-anchor="middle">15</text><text x="462" y="378" text-anchor="middle">17</text><text x="586" y="378" text-anchor="middle">19</text><text x="710" y="378" text-anchor="middle">21</text><text x="400" y="411" text-anchor="middle">time [s]</text><text transform="translate(19 205) rotate(-90)" text-anchor="middle">predicted apogee error [ft]</text></g>
+  <g font-family="monospace" font-size="15"><line x1="548" y1="35" x2="582" y2="35" stroke="#c9b46a" stroke-width="2"/><text x="591" y="40" fill="#c9b46a">zero error</text><line x1="548" y1="14" x2="582" y2="14" stroke="#c9b46a" stroke-width="2" stroke-dasharray="7 5"/><text x="591" y="19" fill="#c9b46a">apogee detect</text></g>
+</svg>

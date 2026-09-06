@@ -500,7 +500,7 @@ section{ position:relative; z-index:1; }
 /* Portrait | copy + education | vertical tool marks. The copy sits in the
    middle, above the horizon the descent lands on. */
 .about-grid{
-  display:grid; grid-template-columns:420px minmax(0,1fr) 250px;
+  display:grid; grid-template-columns:380px minmax(0,1fr) 250px;
   gap:56px; align-items:start;
 }
 
@@ -539,9 +539,12 @@ section{ position:relative; z-index:1; }
    as well so the height can be reduced" — it was sitting too far down the
    page. Smaller + wider means fewer wrapped lines per paragraph, so the whole
    bio block loses height even though the copy itself is unchanged. */
-.about-text{ font-size:15px; line-height:1.6; color:var(--pale-stone); max-width:760px; }
+.about-text{ font-size:14px; line-height:1.6; color:var(--pale-stone); max-width:760px; }
 .about-text p{ margin:0 0 16px; }
-.about-text .lead{ color:var(--bone); font-size:17px; margin-bottom:24px; }
+.about-text .lead{ color:var(--bone); font-size:16px; margin-bottom:24px; }
+.about-text .lead.about-intro{ font-size:14px; }
+.about-intro-lead{ color:var(--bone); font-size:16px; }
+.about-intro-body{ color:var(--pale-stone); }
 
 /* ---------- education + coursework, inside About ----------
    Education had a full section of its own; Krittin folded it back into
@@ -559,7 +562,11 @@ section{ position:relative; z-index:1; }
 }
 .edu-row{ display:flex; flex-direction:column; gap:4px; margin-bottom:14px; }
 .edu-row:last-child{ margin-bottom:0; }
-.edu-inst{ font-family:var(--sans); font-size:15px; font-weight:500; color:var(--bone); }
+.edu-year-gpa{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+.edu-year-gpa .edu-detail:last-child{ text-align:right; white-space:nowrap; }
+.coursework-short{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.coursework-short .edu-row{ margin-bottom:0; }
+.edu-inst{ font-family:var(--sans); font-size:14px; font-weight:500; color:var(--bone); }
 /* Brightened from --warm-granite — Krittin: "education and relevant course
    work text are hard to read and cannot see". Halving the column width for
    the side-by-side layout made the previous muted tone read as barely-there
@@ -1047,7 +1054,7 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
    initIndexTyping() in js/main.js still finds the right title/year/status
    elements — it only cares about the elements, never their visual order. */
 .proj-index-projects{ right:0; bottom:6px; align-items:flex-end; text-align:right; }
-.proj-index-projects a{ flex-direction:row-reverse; }
+.proj-index-projects a{ flex-direction:row-reverse; flex-wrap:wrap; }
 /* Research rows wrap so .proj-program (below) can force itself onto a
    second line under title/year/status rather than sitting inline after
    them — Krittin: "put USP and thesis (brackets) under the index title". */
@@ -1244,6 +1251,10 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
   view-transition-name:proj-title;
 }
 .detail-sub{ font-family:var(--sans); font-size:16px; color:var(--warm-granite); max-width:640px; line-height:1.55; }
+.terragator-page .detail-header{ max-width:1500px; position:relative; }
+.terragator-page .back-link{ max-width:1500px; }
+.terragator-page .detail-sub{ max-width:1100px; }
+.terragator-page .detail-cta{ position:absolute; top:24px; right:40px; margin-top:0; }
 /* Classification pill under the sub-line — currently just "undergraduate
    honors thesis" on thesis.html. Reuses .tag rather than a new pill style;
    own class only so it isn't mistaken for the tools &amp; methods row. */
@@ -1340,8 +1351,14 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
 .paper-btn{
   display:inline-flex; align-items:center; gap:8px; background:#1f1d1c; color:var(--bone);
   font-family:var(--sans); font-size:14px; padding:0 16px; height:40px; border-radius:3px; margin-top:4px;
+  border:0; cursor:pointer;
   transition:background-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
+.paper-btn-pending-soon{ display:none; }
+.paper-btn--pending:hover .paper-btn-pending-read,
+.paper-btn--pending:focus-visible .paper-btn-pending-read{ display:none; }
+.paper-btn--pending:hover .paper-btn-pending-soon,
+.paper-btn--pending:focus-visible .paper-btn-pending-soon{ display:inline; }
 .desc{ font-size:16px; line-height:1.65; color:var(--pale-stone); }
 .desc p{ margin:0 0 20px; }
 .desc h3{ clear:both; font-family:var(--mono); font-size:12px; text-transform:uppercase; color:var(--warm-granite); margin:32px 0 12px; padding-top:24px; border-top:1px solid var(--ash); }
@@ -1402,8 +1419,8 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
    220–440px carbon/ash box; nothing gets cropped either way, so `.is-chart`
    isn't needed on images using this. */
 .detail-figure--plain img, .detail-figure--plain svg{ display:block; width:100%; height:auto; }
-.bdot-animation{ max-height:520px; }
-.bdot-animation video{ object-fit:contain; }
+.bdot-animation{ width:50%; max-width:600px; min-height:0; max-height:none; height:auto; margin-left:auto; margin-right:auto; }
+.bdot-animation video{ width:100%; height:auto; max-height:none; object-fit:contain; }
 .bdot-results-plots{
   display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:32px;
 }
@@ -1427,6 +1444,25 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
   display:flex; flex-wrap:wrap; align-items:stretch; justify-content:center;
   gap:32px 48px;
 }
+.terragator-model-rail{
+  grid-column:3; grid-row:1; align-self:start; position:sticky; top:96px;
+  width:auto; margin:0; padding:0;
+  display:flex; flex-direction:column; align-items:center; gap:36px;
+}
+.terragator-body{
+  max-width:1500px;
+  grid-template-columns:minmax(220px,280px) minmax(440px,1fr) minmax(220px,320px);
+  gap:48px;
+}
+.terragator-model-rail .cutout{ width:100%; }
+.terragator-model-rail .cutout img{ max-height:360px; }
+.terragator-acs{ padding:0; position:relative; }
+.terragator-acs-frame{
+  width:220px; height:250px; display:flex; align-items:center; justify-content:center;
+  border:1px solid transparent; overflow:hidden;
+}
+.terragator-acs-frame img{ width:auto; height:100%; max-width:none; max-height:none; transform:rotate(90deg); }
+.terragator-acs figcaption{ position:relative; z-index:2; margin-top:12px; color:var(--pale-stone); }
 .cutout{ margin:0; display:flex; flex-direction:column; align-items:center; gap:10px; }
 .cutout img{ display:block; max-width:100%; max-height:360px; width:auto; height:auto; }
 .cutout figcaption{
@@ -1688,6 +1724,7 @@ footer{
 }
 
 @media (max-width: 1100px){
+  .terragator-page .detail-cta{ position:static; margin-top:24px; }
   .hero-left{ flex:0 0 42%; padding:0 40px; }
   .hero-left::before{ left:24px; }
 }
@@ -1786,8 +1823,11 @@ footer{
   .proj-program{ font-size:12px; }
   .projects .section-inner{ padding-left:20px; padding-right:20px; }
   .detail-body{ grid-template-columns:1fr; }
+  .bdot-animation{ width:100%; max-width:none; }
   .bdot-results-plots{ grid-template-columns:1fr; gap:24px; }
   .communigator-body{ grid-template-columns:1fr; max-width:1200px; }
+  .terragator-body{ grid-template-columns:1fr; max-width:1200px; }
+  .terragator-model-rail{ grid-column:auto; grid-row:auto; position:static; width:min(100%,320px); margin:0 auto; }
   .communigator-top-visuals{ grid-column:auto; grid-row:auto; grid-template-columns:1fr; gap:24px; }
   .communigator-architecture,
   .communigator-team{ grid-column:1; grid-row:auto; }

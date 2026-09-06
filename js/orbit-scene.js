@@ -822,7 +822,8 @@ export function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000 / 60,
   // shrinking the canvas (which is what used to slice cubesats in half), the
   // camera's frustum is offset so the scene centre lands at this fraction of
   // the width. Stacked layouts put it back in the middle.
-  const SCENE_CENTER_WIDE = 0.68;
+  const SCENE_CENTER_HERO = 0.68;
+  const SCENE_CENTER_ABOUT = 0.75;
   const STACK_BREAKPOINT = 900;
 
   // ---- descent -------------------------------------------------------------
@@ -947,7 +948,7 @@ export function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000 / 60,
     // Centred by the time it lands: the globe starts in the right two-thirds
     // to leave the hero copy its column, and comes back to the middle as it
     // settles.
-    const centerX = stacked ? 0.5 : SCENE_CENTER_WIDE + (0.5 - SCENE_CENTER_WIDE) * p;
+    const centerX = stacked ? 0.5 : SCENE_CENTER_HERO + (SCENE_CENTER_ABOUT - SCENE_CENTER_HERO) * p;
 
     // Down to the horizon, then straight up with the scroll. The stacked
     // layout has neither (main.js pins both at 0 below the same breakpoint),
@@ -978,7 +979,7 @@ export function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000 / 60,
     // a scrollbar makes the container a little narrower than the viewport.
     stacked = window.innerWidth <= STACK_BREAKPOINT;
 
-    camDistance = fitDistance(camera.aspect, stacked ? 0.5 : SCENE_CENTER_WIDE);
+    camDistance = fitDistance(camera.aspect, stacked ? 0.5 : Math.max(SCENE_CENTER_HERO, SCENE_CENTER_ABOUT));
     applyDescent();
     measureLabels();
   }

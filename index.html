@@ -18,7 +18,7 @@
        whenever style.css, main.js, or a scene module changes, in every HTML
        file that references it — see the matching tags in css/style.css and
        js/main.js and every projects/*.html. -->
-  <link rel="stylesheet" href="css/style.css?v=20260906m">
+  <link rel="stylesheet" href="css/style.css?v=20260906o">
 
   <!-- In <head> and render-blocking, deliberately. `pagereveal` fires before
        the document's first render, and on a page this size the browser can
@@ -195,8 +195,7 @@
           </div>
         </div>
         <div class="about-text" data-reveal>
-          <p class="lead">I’m Yim from Thailand, and I’m a fourth-year Aerospace Engineering student in the Honors Program at the University of Florida.</p>
-          <p>I grew up near the Geo-Informatics and Space Technology Development Agency (GISTDA) in Thailand, and I often visited their museum growing up. Those visits sparked my interest in space and eventually led me to become fascinated with satellites.</p>
+          <p class="lead about-intro"><span class="about-intro-lead">I’m Yim from Thailand, and I’m a fourth-year Aerospace Engineering student in the Honors Program at the University of Florida.</span> <span class="about-intro-body">I grew up near the Geo-Informatics and Space Technology Development Agency (GISTDA) in Thailand, and I often visited their museum growing up. Those visits sparked my interest in space and eventually led me to become fascinated with satellites.</span></p>
           <p>My current research interests are broadly focused on CubeSats and spacecraft systems, including areas such as attitude determination and control (ADCS), guidance, navigation, and control (GNC), formation flying, and nonlinear control. I have experience in nonlinear control research at NCR and spent two years as a Software and GNC Lead on the Swamp Launch rocket team. I am also currently working on my undergraduate honors thesis on Hybrid Control Moment Gyroscope (HCMG) momentum desaturation. I’m interested in exploring different areas of CubeSat research and learning more about the challenges involved in controlling and operating small spacecraft.</p>
 
           <!-- Education and Relevant Coursework, SIDE BY SIDE — Krittin:
@@ -219,7 +218,7 @@
               <div class="edu-row">
                 <span class="edu-inst">University of Florida</span>
                 <span class="edu-detail">Honors Aerospace Engineering</span>
-                <span class="edu-detail">2023 – 2027</span>
+                <span class="edu-year-gpa"><span class="edu-detail">2023 – 2027</span><span class="edu-detail">(GPA: 3.98)</span></span>
               </div>
               <div class="edu-row">
                 <span class="edu-inst">United World College Costa Rica</span>
@@ -228,18 +227,20 @@
               </div>
               <div class="edu-row">
                 <span class="edu-inst">Suankularb Wittayalai School</span>
-                <span class="edu-detail">2017 – 2021</span>
+                <span class="edu-year-gpa"><span class="edu-detail">2017 – 2021</span><span class="edu-detail">(GPA: 4.00)</span></span>
               </div>
             </div>
-            <div class="about-edu">
+            <div class="about-edu about-coursework">
               <div class="about-edu-label">relevant coursework</div>
-              <div class="edu-row">
-                <span class="edu-inst">Nonlinear Controls</span>
-                <span class="edu-detail">EML6350</span>
-              </div>
-              <div class="edu-row">
-                <span class="edu-inst">Astrodynamics</span>
-                <span class="edu-detail">EAS4510</span>
+              <div class="coursework-short">
+                <div class="edu-row">
+                  <span class="edu-inst">Nonlinear Controls</span>
+                  <span class="edu-detail">EML6350</span>
+                </div>
+                <div class="edu-row">
+                  <span class="edu-inst">Astrodynamics</span>
+                  <span class="edu-detail">EAS4510</span>
+                </div>
               </div>
               <div class="edu-row">
                 <span class="edu-inst">Control of Mechanical Engineering Systems</span>
@@ -696,7 +697,7 @@
           <a href="projects/rocket-software.html"><span class="proj-title">Project Communigator</span><span class="proj-year">2024</span></a>
           <a href="projects/theos3a.html"><span class="proj-title">THEOS3a</span><span class="proj-year">2025</span></a>
           <a href="projects/controls-final-project.html"><span class="proj-title">Sky Crane</span><span class="proj-year">2025</span></a>
-          <a href="projects/senior-design-project.html"><span class="proj-title">Lunar Hopper</span><span class="proj-year">2026</span></a>
+          <a href="projects/senior-design-project.html"><span class="proj-title">Lunar Hopper</span><span class="proj-year">2026</span><span class="proj-program">(senior design project)</span></a>
         </nav>
       </div>
     </div>
@@ -726,7 +727,7 @@
         try {
           // A real dynamic import: the 135 KB scene and its Three.js add-ons
           // are neither downloaded nor parsed until Projects approaches.
-          const { initSystemScene } = await import("./js/system-scene.js?v=20260906k");
+          const { initSystemScene } = await import("./js/system-scene.js?v=20260906o");
           initSystemScene({
             canvas: systemCanvas,
             labelLayer: document.getElementById("system-labels"),
@@ -783,7 +784,7 @@
         // follows the active display, so this distinguishes a 90/144/165 Hz
         // laptop panel from a 60 Hz HDMI monitor without browser sniffing.
         const [{ initOrbitScene }, displayFrameMs] = await Promise.all([
-          import("./js/orbit-scene.js?v=20260906c"),
+          import("./js/orbit-scene.js?v=20260906d"),
           measureDisplayFrameMs(),
         ]);
 

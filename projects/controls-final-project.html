@@ -39,6 +39,10 @@
     <div class="eyebrow"><span class="dot"></span>project — 05</div>
     <h1 class="detail-title">Sky Crane</h1>
     <div class="detail-sub">Controller design and simulation for a Mars-landing sky crane — PID, frequency-domain loop-shaping, and full-state feedback via pole placement, checked against each other on linear and nonlinear models.</div>
+    <div class="detail-cta">
+      <a class="paper-btn" href="../assets/papers/controls-final-project.pdf" target="_blank" rel="noopener">↓ read the paper</a>
+      <a class="paper-btn" href="https://github.com/yim1305/SkyCrane-Project" target="_blank" rel="noopener">↗ view code</a>
+    </div>
   </div>
 
   <!-- Krittin: "add the 2 simulink models at the top dont add them in the
@@ -79,14 +83,6 @@
         <div class="fact-label">results</div>
         <div class="fact-value">PID controller met the 10 m step-response spec (0.36 s rise time, 0% overshoot); loop-shaping compensator hit a 25.4 dB gain margin and 20.2° phase margin; both validated in the full nonlinear simulation under thrust, roll and pitch disturbances.</div>
       </div>
-      <div class="fact-block">
-        <div class="fact-label">paper</div>
-        <a class="paper-btn" href="../assets/papers/controls-final-project.pdf" target="_blank" rel="noopener">↓ read the paper</a>
-      </div>
-      <div class="fact-block">
-        <div class="fact-label">code</div>
-        <a class="paper-btn" href="https://github.com/yim1305/SkyCrane-Project" target="_blank" rel="noopener">↗ view code</a>
-      </div>
     </div>
 
     <div class="desc" data-reveal>
@@ -123,18 +119,6 @@
       <figure class="detail-figure detail-figure--plain">
         <img loading="lazy" decoding="async" src="../assets/images/projects/crane-nonlinsim-result.png" alt="Nonlinear simulation results — height and pitch tracking with disturbance, and their control inputs, vs time">
         <figcaption>nonlinear simulation — height/pitch tracking and control effort (Figures 12–13)</figcaption>
-      </figure>
-      <!-- Krittin: "add the plots by yourself based on the paper" — no
-           exported figure exists for pole placement, so this is this
-           project's own real closed-loop poles/K-matrix simulated fresh
-           (RK4 on the controllable-canonical realization), not invented
-           numbers. Illustrative only — an even mix of decay modes at the
-           paper's actual 10 chosen poles, not a replica of its noisy
-           pulse-disturbance sim, which needs the full nonlinear model to
-           reproduce exactly — flag as needing his read-through. -->
-      <figure class="detail-figure detail-figure--inset align-right">
-        <div class="detail-figure-media"><img loading="lazy" decoding="async" class="is-chart" src="../assets/images/projects/crane-poleplacement-response.svg" alt="Full-state feedback — illustrative decay of a height disturbance under the chosen pole placement"></div>
-        <figcaption>full-state feedback — illustrative disturbance decay at the chosen poles</figcaption>
       </figure>
     </div>
   </div>

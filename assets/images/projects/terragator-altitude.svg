@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 430" role="img" aria-labelledby="title desc">
+  <title id="title">TerraGator altitude versus time</title>
+  <desc id="desc">Static flight altitude trace compared with the commanded apogee.</desc>
+  <g stroke="#aeb8b5" stroke-width="2"><path d="M90 54V354H710"/></g>
+  <path d="M90 78H710" fill="none" stroke="#c9b46a" stroke-width="2" stroke-dasharray="9 7"/>
+  <path d="M90 354 L111 354 L124 345 L138 286 L158 170 L180 91 L205 68 L221 69 L245 83 L278 112 L320 145 L370 180 L420 215 L470 248 L520 282 L565 310 L600 326 L625 333 L650 349 L680 351 L710 351" fill="none" stroke="#64ffe1" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <g fill="#d8e0dd" font-family="monospace" font-size="16">
+    <text x="78" y="359" text-anchor="end">0</text><text x="78" y="299" text-anchor="end">1000</text><text x="78" y="239" text-anchor="end">2000</text><text x="78" y="179" text-anchor="end">3000</text><text x="78" y="119" text-anchor="end">4000</text><text x="78" y="59" text-anchor="end">5000</text>
+    <text x="90" y="378" text-anchor="middle">0</text><text x="193" y="378" text-anchor="middle">15</text><text x="296" y="378" text-anchor="middle">30</text><text x="400" y="378" text-anchor="middle">45</text><text x="503" y="378" text-anchor="middle">60</text><text x="606" y="378" text-anchor="middle">75</text><text x="710" y="378" text-anchor="middle">90</text>
+    <text x="400" y="411" text-anchor="middle">time [s]</text><text transform="translate(19 205) rotate(-90)" text-anchor="middle">altitude [ft]</text>
+  </g>
+  <g font-family="monospace" font-size="15"><line x1="548" y1="35" x2="582" y2="35" stroke="#c9b46a" stroke-width="2" stroke-dasharray="7 5"/><text x="591" y="40" fill="#c9b46a">command</text><line x1="548" y1="14" x2="582" y2="14" stroke="#64ffe1" stroke-width="3"/><text x="591" y="19" fill="#64ffe1">measured</text></g>
+</svg>

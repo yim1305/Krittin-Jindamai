@@ -1214,7 +1214,7 @@ const SAT_MODEL_W = 2 * (SAT_PANEL_X + SAT_PANEL_W / 2);
 const SAT_MODEL_H = SAT_BUS + 0.17;
 // Nudge THEOS-3A toward the right-hand project index while preserving its
 // vertical relationship to Lunar Hopper.
-const THEOS_RIGHT_OFFSET = 0.42;
+const THEOS_RIGHT_OFFSET = 0.52;
 
 function buildSatellite(tint = CMG_TINT) {
   const geos = [new THREE.BoxGeometry(SAT_BUS, SAT_BUS, SAT_BUS)];
@@ -1964,7 +1964,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     // The darker added satellite, midway between CBF and TerraGator.
     { text: "bdot detumbling", href: "projects/bdot-detumbling.html", dx: 0, dy: -0.065, align: "center", avoidEarth: true, avoidMoon: true, desc: "B-Dot Control Detumbling", img: null },
     // The lighter added satellite, below Lunar Hopper.
-    { text: "theos3a", href: "projects/theos3a.html", dx: 0, dy: 0.025, align: "center", avoidEarth: true, avoidMoon: true, desc: "THEOS-3A Structural Analysis", img: null },
+    { text: "theos3a", href: "projects/theos3a.html", dx: 0, dy: 0.12, align: "center", avoidEarth: true, avoidMoon: false, desc: "THEOS-3A Structural Analysis", img: null },
   ];
 
   // The baseScale here MUST match what each model was actually built at above
