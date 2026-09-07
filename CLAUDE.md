@@ -18,6 +18,8 @@ js/main.js              typing, eased scroll, reveals, nav, descent, starfield, 
 js/orbit-scene.js       the Three.js hero (ES module)
 js/system-scene.js      the Three.js Earth/Moon system in Projects (ES module)
 js/cmg-scene.js         real HCMG sim attitude animation, thesis.html only (ES module)
+js/cmg-charts.js        its 5 SVG charts, no three.js dep — shared with cmg-scene-static.js
+js/cmg-scene-static.js  no-import-map fallback for cmg-scene.js (old Safari) — see header
 js/cbf-scene.js         real Gazebo CBF run, ros-research.html only (ES module)
 js/moon-scene.js        SUPERSEDED, imported by nothing — kept as a revert path
 projects/_template.html duplicate for a build/design project (timeframe/role/tools)
@@ -31,7 +33,10 @@ assets/                 images/ (nebula-backdrop.webp, about media), papers/, da
 ES modules mean **`file://` will not work** — serve over HTTP (`npx serve .`).
 Three.js r160 comes from unpkg via an import map in the `<head>` of every page
 with a scene (required — addons import the bare specifier `"three"`), so all
-four 3D scenes need a connection.
+four 3D scenes need a connection. Pre-16.4 Safari has no import maps at all —
+`SUPPORTS_IMPORTMAP`/`sceneFallback()` in `main.js` detect and degrade the
+hero/Projects/CBF scenes to a message; thesis.html instead swaps in
+`cmg-scene-static.js`, which needs neither addons nor the import map.
 
 **Do not start a server or open a browser to verify changes** — Krittin checks
 visually himself and it loads his laptop. Reason about the code, state the

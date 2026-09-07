@@ -233,16 +233,24 @@
 
   <script type="module">
     const canvas = document.getElementById("cmg-canvas");
-    if (canvas && !window.SUPPORTS_IMPORTMAP) {
-      window.sceneFallback(canvas);
-    } else if (canvas) {
+    if (canvas) {
       let mounted = false;
+      // Krittin: "for older and unsupported browsers make the plot static
+      // and no need animation for satellite and earth as well just make it
+      // shows up as static" — see js/cmg-scene-static.js's header for why
+      // SUPPORTS_IMPORTMAP (js/main.js) is the right switch here: it's not
+      // just the live animation that's unavailable without it, the whole
+      // module (charts included) fails to load at all.
+      const sceneModule = window.SUPPORTS_IMPORTMAP
+        ? "../js/cmg-scene.js?v=20260907b"
+        : "../js/cmg-scene-static.js?v=20260907a";
+      const initFn = window.SUPPORTS_IMPORTMAP ? "initCmgScene" : "initCmgSceneStatic";
       const mount = async () => {
         if (mounted) return;
         mounted = true;
         try {
-          const { initCmgScene } = await import("../js/cmg-scene.js?v=20260907a");
-          await initCmgScene({
+          const mod = await import(sceneModule);
+          await mod[initFn]({
             canvas,
             dataUrl: "../assets/data/sim_data_mtq_on.csv",
             offDataUrl: "../assets/data/sim_data_mtq_off.csv",
