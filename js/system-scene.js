@@ -174,7 +174,9 @@ const CRANE_SCALE = 0.72; // lander ~76px across
 // shuttle orbiter's own model is much shorter than SLS's stack, so at equal
 // scale it read as the smaller vehicle.
 const TERRAGATOR_SCALE = 0.896; // 2x
-const COMMUNIGATOR_SCALE = 0.582; // 1.3x
+// Grown another 1.2x on top of that 1.3x — Krittin: "make SLS size 1.2x what
+// it is now" (0.582 * 1.2).
+const COMMUNIGATOR_SCALE = 0.698;
 const DECORATIVE_SAT_SCALE_A = 0.34;
 const DECORATIVE_SAT_SCALE_B = 0.29;
 
@@ -335,8 +337,9 @@ const OUTBOUND_CONTROL = [
 // which should land it in the gap by the index rather than at either end.
 // UNVERIFIED.
 const TERRAGATOR_T = 0.5;
-// Midpoint of the Moon-to-Earth return leg, remaining on the same curve.
-const COMMUNIGATOR_T = 0.5;
+// Krittin: move it from the midpoint to 44% along the Moon-to-Earth return
+// leg, remaining on the same curve.
+const COMMUNIGATOR_T = 0.44;
 
 // How far each vehicle is rolled off exactly-broadside, about its own long
 // axis. See the long note on park(): 0 would face each model's identifying
@@ -1932,36 +1935,41 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
     // Below the shuttle, which parks mid-way along the reshaped outbound leg
     // (see OUTBOUND_CONTROL / TERRAGATOR_T), in the gap between the
     // .proj-index list and where it used to sit. UNVERIFIED.
-    { text: "terragator", href: "projects/rocket-airbrake.html", dx: 0.065, dy: 0.055, align: "center", avoidEarth: true, avoidMoon: true, desc: "Apogee Control System for Project TerraGator", img: null },
+    { text: "terragator", num: "04", href: "projects/rocket-airbrake.html", dx: 0.065, dy: 0.055, align: "center", avoidEarth: true, avoidMoon: true, desc: "Apogee Control System for Project TerraGator", img: null },
     // Below SLS on the way home, on open sky — Earth's disc never reaches
     // this far right.
-    { text: "communigator", href: "projects/rocket-software.html", dx: 0.055, dy: 0.105, align: "center", avoidEarth: true, avoidMoon: true, desc: "Drop It Like It’s Hot (Payload) for Project Communigator", img: null },
+    { text: "communigator", num: "05", href: "projects/rocket-software.html", dx: 0.055, dy: 0.065, align: "center", avoidEarth: true, avoidMoon: true, desc: "H.O.T. Pocket (Payload) for Project Communigator", img: null }, // Krittin: nudge 05 up more
     // To the RIGHT of the satellite and level with it. Now that it sits
     // between the two legs rather than by the index, check this still clears
     // the outbound leg above and the homebound leg below — UNVERIFIED. Note
     // the satellite is WIDER than the box it replaced (solar wings), so this
     // offset may need pushing further right.
-    { text: "cmg desaturation", href: "projects/thesis.html", dx: 0.075, dy: 0.015, align: "left", avoidEarth: true, avoidMoon: true, desc: "Hybrid Control Moment Gyroscope Angular Momentum Desaturation Using Magnetorquers for CubeSats in Low Earth Orbit (honors thesis)", img: null },
+    { text: "cmg desaturation", num: "01", href: "projects/thesis.html", dx: 0.075, dy: 0.035, align: "left", avoidEarth: true, avoidMoon: true, desc: "Hybrid Control Moment Gyroscope Angular Momentum Desaturation Using Magnetorquers for CubeSats in Low Earth Orbit (honors thesis)", img: null }, // Krittin: nudge 01 down a little
     // ABOVE the robot. avoidEarth stays off even though the robot now stands
     // at the limb rather than deep in the disc: its contact point is right on
     // the silhouette edge, so clearBody would be making a push decision on a
     // knife edge, and the label is already over open space anyway.
-    { text: "nonholonomic cbf", href: "projects/ros-research.html", dx: 0.026, dy: -0.12, align: "center", avoidEarth: false, avoidMoon: true, desc: "Control Barrier Functions for Nonholonomic Robots Way Point Control Near Safe Set Barriers (University Scholars Program)", img: null },
+    { text: "nonholonomic cbf", num: "02", href: "projects/ros-research.html", dx: 0.006, dy: -0.10, align: "center", avoidEarth: false, avoidMoon: true, desc: "Control Barrier Functions for Nonholonomic Robots Way Point Control Near Safe Set Barriers (University Scholars Program)", img: null }, // Krittin: nudge 02 left and down a little
     // Above the crane. Its home moved (see craneAnchor above) — recheck this
     // still clears the flight path's wrap. UNVERIFIED. avoidMoon off for the
     // same reason avoidEarth is off above.
     // No .detail-sub on this page yet, so "sky crane" is the only real text
     // there is — duplicates the panel's own bold title, but that still beats
     // a bracket placeholder. Swap in a real one the moment the page has it.
-    { text: "sky crane", href: "projects/controls-final-project.html", dx: 0, dy: -0.1, align: "center", avoidEarth: true, avoidMoon: false, desc: "Sky Crane", img: null },
+    { text: "sky crane", num: "07", href: "projects/controls-final-project.html", dx: 0, dy: -0.1, align: "center", avoidEarth: true, avoidMoon: false, desc: "Sky Crane", img: null },
     // Below the hop's apex, which already sits past the Moon's lower limb.
     // Same situation as Sky Crane — no real subtitle exists yet.
-    { text: "lunar hopper", href: "projects/senior-design-project.html", dx: 0, dy: 0.055, align: "center", avoidEarth: true, avoidMoon: false, desc: "Lunar Hopper", img: null },
+    { text: "lunar hopper", num: "08", href: "projects/senior-design-project.html", dx: 0, dy: 0.055, align: "center", avoidEarth: true, avoidMoon: false, desc: "Lunar Hopper", img: null },
     // The darker added satellite, midway between CBF and TerraGator.
-    { text: "bdot detumbling", href: "projects/bdot-detumbling.html", dx: 0, dy: -0.065, align: "center", avoidEarth: true, avoidMoon: true, desc: "B-Dot Control Detumbling", img: null },
+    { text: "bdot detumbling", num: "03", href: "projects/bdot-detumbling.html", dx: 0, dy: -0.085, align: "center", avoidEarth: true, avoidMoon: true, desc: "B-Dot Control Detumbling", img: null }, // Krittin: nudge 03 up a little
     // The lighter added satellite, below Lunar Hopper.
-    { text: "theos3a", href: "projects/theos3a.html", dx: 0, dy: 0.12, align: "center", avoidEarth: true, avoidMoon: false, desc: "THEOS-3A Structural Analysis", img: null },
+    { text: "theos3a", num: "06", href: "projects/theos3a.html", dx: 0.04, dy: 0.12, align: "center", avoidEarth: true, avoidMoon: false, desc: "THEOS-3A Structural Analysis", img: null }, // Krittin: nudge 06 right more
   ];
+  // `num` matches this project's row number in .proj-index (01-03 research,
+  // 04-08 the rest, see index.html) — Krittin: "instead of the name next to
+  // the models use number instead". `text` is untouched and still feeds the
+  // hover panel's title/alt (updateInfoPanel below), so only the floating
+  // scene label swaps to a number, not the accessible name or the preview.
 
   // The baseScale here MUST match what each model was actually built at above
   // — registerModel's hover swell is `baseScale * (1 + 0.34k)`, so a stale
@@ -1988,7 +1996,8 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
       const el = document.createElement("a");
       el.className = "proj-label";
       el.href = p.href;
-      el.textContent = p.text;
+      el.textContent = p.num;
+      el.setAttribute("aria-label", p.text);
       labelLayer.appendChild(el);
       p.el = el;
     }
@@ -2423,9 +2432,29 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
 
     // Thin and solid (Krittin: "a thin solid ... line isntead of mix of solid
     // and dash lines"), now orange rather than white — see FLIGHT_COLOR.
-    flightPath.add(
-      flatLine(points, { color: FLIGHT_COLOR, width: FLIGHT_WIDTH, opacity: FLIGHT_OPACITY, dashed: false })
-    );
+    const path = flatLine(points, { color: FLIGHT_COLOR, width: FLIGHT_WIDTH, opacity: FLIGHT_OPACITY, dashed: false });
+    // Krittin: "shuttle body [should] block the orange line behind it" — it
+    // already did behind SLS, not behind the shuttle. Three.js sorts
+    // same-renderOrder transparent objects back-to-front by distance each
+    // frame, and for the shuttle's thin single-sided wing/fin sheets (see
+    // fillMaterial()'s DoubleSide note) that heuristic was putting the line
+    // AHEAD of the body in the draw order at this camera angle: drawn first,
+    // the line landed in the framebuffer at full strength, and the body then
+    // blended OVER it at whatever alpha that facet happens to have — the
+    // model's own translucency, not a depth-tested occlusion, so a chunk of
+    // orange always showed through regardless of how opaque the facet was.
+    // SLS's equivalent point happens to be a proper closed tube (two
+    // translucent walls compounding), so enough colour got absorbed there to
+    // read as "blocked" by luck rather than by design.
+    // Forcing the line to always draw AFTER every model (renderOrder is an
+    // explicit override, ranked above the distance sort) fixes this properly:
+    // the body's depthWrite:true has already landed in the depth buffer by
+    // the time the line is rasterized, so any segment behind it fails the
+    // depth test and is discarded outright — a real binary occlusion — rather
+    // than being alpha-blended underneath. Nothing about the model's own
+    // opacity changes, so it doesn't read any darker than it already did.
+    path.renderOrder = 10;
+    flightPath.add(path);
 
     applyFade(fade); // newly built materials start at their resting opacity
   }
@@ -2561,6 +2590,20 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
       camera.clearViewOffset();
       camera.updateProjectionMatrix();
     }
+    // updateProjectionMatrix() above does not touch matrixWorldInverse — that
+    // only refreshes via updateMatrixWorld(), which otherwise doesn't happen
+    // until the next renderer.render(scene, camera) call. Every .project(camera)
+    // below (earthScreen/moonScreen here, the arrival's decorative-satellite
+    // placement, and every label in updateLabelPositions()) reads
+    // matrixWorldInverse directly, so without this line they all use the
+    // PREVIOUS camera transform — on the very first resize, that's the
+    // default identity the camera was constructed with, throwing every one of
+    // them off by a huge margin (labels landing at the bottom of the page).
+    // The old per-frame arrival loop masked this: frame 1 was wrong for one
+    // invisible (still-transparent) frame, then self-corrected because its
+    // own renderer.render() call updated the matrix before the next frame.
+    // With no per-frame loop, nothing else ever corrects it.
+    camera.updateMatrixWorld();
 
     // Billboard both limb rings to the camera. Once, not per frame — the
     // camera never turns.
@@ -2776,10 +2819,14 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // unsized, so the first real resize is a reframe rather than a cold build.
   if (!layout) applyLayout(LAYOUTS[0]);
   applyFade(fade);
-  // REDUCED rather than introDone, which is not declared until below: at this
-  // point the two are the same value, and reading introDone here would be a
-  // temporal-dead-zone error rather than a subtle one.
-  if (REDUCED) applySettled();
+  // Krittin: no fly-in for any model, ever — always land settled rather than
+  // gating this on REDUCED. The typing effect in js/main.js is untouched.
+  applySettled();
+  // render(), not renderFrame(): the steady-state loop's renderFrame() skips
+  // updateLabelPositions() on the assumption the (now-removed) arrival loop
+  // already placed every label once. With no arrival, this is that one call —
+  // skip it and every label sits at its unset CSS default, top-left, stacked.
+  render();
   window.addEventListener("resize", () => {
     resize();
     // A preset change moves every frame-placed object, so their positions are
@@ -2811,7 +2858,7 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
   const CLOUD_SPEED = 0.011; // radians per second
 
   let introStart = null;
-  let introDone = REDUCED;
+  let introDone = true; // arrival fly-in disabled outright, see applySettled() above
   let visible = false;
   let hoverBusy = false;
 

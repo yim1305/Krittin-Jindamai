@@ -212,7 +212,8 @@ close above its satellite.
 Both connect to their index rows, labels, hover panels, and project pages. All
 three satellites use neighboring muted-gold shades. CMG is offset left by one
 quarter of its nominal model width and down by one quarter of its height.
-Communigator parks at the midpoint of the Moon-to-Earth return curve; its label
+Communigator parks 44% along the Moon-to-Earth return curve (COMMUNIGATOR_T);
+its label
 is offset down and right to clear the model. On desktop
 `.proj-scene` rises 56px into the preceding sky;
 the Moon's top aligns near the Projects eyebrow, while the wide layout moves

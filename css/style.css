@@ -976,29 +976,30 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
   opacity:0; /* raised by the scene as it arrives */
   transition:opacity .5s var(--ease-out);
 }
-/* NO BOX. Krittin was explicit — "[no box just text]" — so there is no chip,
-   no border and no leader line, unlike the version before it. That puts the
-   whole burden of legibility on placement, which is why the offsets in
-   PROJECTS keep each label off the bodies rather than relying on a backing
-   plate to survive being on one. Placement itself is now partly dynamic too —
-   system-scene.js's render() pushes a label off Earth's or the Moon's disc if
-   dx/dy alone would leave it sitting on top of one; see clearBody() there.
-
-   Bigger and brighter than before — Krittin: "fix all the texts that are next
-   to robots as well (make them bigger!!!) and more visible". Up from 13px/
-   pale-stone to 16px/500-weight/bone; still mono, still lowercase, still no
-   box — the size and weight carry the legibility instead. */
+/* A circular numbered badge, not the plain text this used to be — superseding
+   Krittin's earlier "[no box just text]" now that the label IS a number
+   (see PROJECTS' num field in system-scene.js) rather than a project name;
+   a bare digit floating over a busy planet/starfield reads far better with a
+   ring around it than a name ever needed one. Same hairline-pill language as
+   .proj-status elsewhere (border:1px solid var(--ash)), filled with
+   --obsidian (a raised surface, not the void backdrop) for legibility, not a
+   glow. Fixed 30px circle comfortably fits the two-digit "01".."08" range at
+   14px mono. Placement is still fully dynamic — system-scene.js's render()
+   pushes it off Earth's or the Moon's disc if dx/dy alone would leave it
+   sitting on top of one; see clearBody() there. */
 .proj-label{
   position:absolute; top:0; left:0; pointer-events:auto;
-  font-family:var(--mono); font-size:16px; font-weight:500; letter-spacing:.01em;
-  text-transform:lowercase; white-space:nowrap;
+  display:flex; align-items:center; justify-content:center;
+  width:30px; height:30px; border-radius:50%;
+  border:1px solid var(--ash); background:var(--obsidian);
+  font-family:var(--mono); font-size:14px; font-weight:500; letter-spacing:.01em;
   color:var(--bone); text-decoration:none;
-  transition:color var(--t-fast) var(--ease);
+  transition:color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
 }
 /* .is-hot is set by the scene, not by :hover, because the highlight has three
    possible sources — the label, the index row, and the 3D object itself — and
    only one of them is this element. */
-.proj-label.is-hot, .proj-label:hover{ color:var(--chalk); }
+.proj-label.is-hot, .proj-label:hover{ color:var(--chalk); border-color:var(--warm-granite); }
 
 /* --- project index (small side list) --- */
 /* A guaranteed-clickable companion to the scene, not a replacement for it —
@@ -1081,6 +1082,22 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
   font-family:var(--sans); font-size:39px; font-weight:500; line-height:1.25;
   color:var(--pale-stone); text-decoration:none;
   transition:color var(--t-fast) var(--ease);
+}
+/* Row number — "01" through "08" straight down the two boxes (research then
+   the rest), same two-digit convention as the section eyebrows ("01 —
+   about"). Markup puts it FIRST in each row, before .proj-title: in the
+   research box (flex-direction:row) that's simply leftmost. In
+   .proj-index-projects, flex-direction:row-reverse lays items out from the
+   row's right edge in DOM order, so being first in DOM is what puts it
+   LAST — i.e. rightmost, flush with the block's own right-justified edge —
+   rather than the title. */
+.proj-num{
+  flex-shrink:0;
+  font-family:var(--mono); font-size:19.5px; font-weight:400; letter-spacing:.02em;
+  /* Half-strength orange — Krittin: "lighter orange maybe 50%... too strong".
+     Mixed toward --bone rather than dimmed toward black, since "lighter" on a
+     dark page means less saturated/closer to the text colour, not darker. */
+  color:color-mix(in srgb, var(--orange) 50%, var(--bone)); white-space:nowrap;
 }
 /* The year sits after the title as quiet mono metadata, not as part of the
    name — same register as the eyebrows and the hero's status strip. It does
@@ -1983,11 +2000,12 @@ footer{
   .proj-index-projects{ margin-top:4px; }
   .proj-index-heading{ margin-bottom:12px; }
   .proj-index a, .proj-index-projects a{
-    display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:baseline;
+    display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:baseline;
     width:100%; gap:6px 12px; padding:16px 0; min-height:48px;
     font-size:clamp(22px,3.3vw,30px); border-bottom:1px solid var(--ash);
   }
   .proj-index .proj-title{ min-width:0; }
+  .proj-index .proj-num{ font-size:13px; }
   .proj-index .proj-year{ font-size:13px; }
   .proj-index .proj-status, .proj-program{ grid-column:1 / -1; font-size:12px; }
   .proj-index a::after{ display:none; }
