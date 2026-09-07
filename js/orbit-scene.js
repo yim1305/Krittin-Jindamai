@@ -25,6 +25,7 @@
 // ==========================================================================
 
 import * as THREE from "three";
+import { LOW_POWER, createRenderBudget, createFrameLoop, prepareShaders } from "./scene-performance.js?v=20260907a";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 // Straight from the design tokens in css/style.css — keep them in sync.
@@ -45,11 +46,6 @@ const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 // monitor at DPR 1 may cost less than half as much. Keep the canvas crisp, but
 // bound the actual framebuffer so high-density displays do not become the
 // slowest way to view the site.
-const MAX_RENDER_PIXELS = 2200000;
-function renderPixelRatio(width, height, ceiling = 2) {
-  const pixelBudgetRatio = Math.sqrt(MAX_RENDER_PIXELS / Math.max(1, width * height));
-  return Math.max(0.75, Math.min(window.devicePixelRatio || 1, ceiling, pixelBudgetRatio));
-}
 
 const SATELLITES = [
   { id: "home",       label: "home",              href: "#home",       radius: 1.95, tilt: -10, incl: 18,  speed: 0.13, phase: 150, color: GREEN  },
@@ -115,7 +111,7 @@ const NOISE_GLSL = /* glsl */ `
 // The direction reconstruction below mirrors THREE.SphereGeometry's own UV
 // convention exactly, so the bake lines up with the mesh with no seam.
 // --------------------------------------------------------------------------
-function bakeSurfaceTexture(renderer, width = 768) {
+async function bakeSurfaceTexture(renderer, width = 512) {
   const height = width / 2;
 
   const target = new THREE.WebGLRenderTarget(width, height, {
@@ -208,6 +204,7 @@ function bakeSurfaceTexture(renderer, width = 768) {
 
   const prevTarget = renderer.getRenderTarget();
   renderer.setRenderTarget(target);
+  await prepareShaders(renderer, bakeScene, bakeCam);
   renderer.render(bakeScene, bakeCam);
   renderer.setRenderTarget(prevTarget);
 
@@ -277,13 +274,13 @@ function buildPlanet(surfaceTex) {
     `,
   });
 
-  return { mesh: new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R, 96, 64), material), uniforms };
+  return { mesh: new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R, LOW_POWER ? 48 : 96, LOW_POWER ? 32 : 64), material), uniforms };
 }
 
 // Reuse the homepage's exact surface, clouds and grid in project scenes.
 // This factory does not initialize the hero, its animation, or its controls.
-export function createEarthModel(renderer, radius = 1) {
-  const texture = bakeSurfaceTexture(renderer, 512);
+export async function createEarthModel(renderer, radius = 1) {
+  const texture = await bakeSurfaceTexture(renderer, LOW_POWER ? 256 : 512);
   const planet = buildPlanet(texture);
   const clouds = buildClouds(texture);
   planet.uniforms.uFade.value = 1;
@@ -327,7 +324,7 @@ function buildClouds(surfaceTex) {
     `,
   });
 
-  return { mesh: new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R * 1.016, 64, 48), material), uniforms };
+  return { mesh: new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R * 1.016, LOW_POWER ? 32 : 64, LOW_POWER ? 24 : 48), material), uniforms };
 }
 
 // --------------------------------------------------------------------------
@@ -580,21 +577,13 @@ function buildCubesat(color) {
 const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
 
 // --------------------------------------------------------------------------
-export function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000 / 60, onSelect, onTelemetry }) {
+export async function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000 / 60, onSelect, onTelemetry }) {
   const container = canvas.parentElement;
   const scene = new THREE.Scene();
 
   const displayHz = Math.max(30, Math.min(240, 1000 / displayFrameMs));
-  const highDensityDesktop =
-    window.innerWidth > 900 &&
-    (window.devicePixelRatio || 1) > 1.25 &&
-    window.matchMedia("(pointer: fine)").matches;
-
-  // Use an integer number of display refreshes per rendered frame. This keeps
-  // motion evenly paced: 120 Hz becomes 60, 144 Hz becomes 72, and 165 Hz
-  // becomes 82.5. A 90 Hz panel stays at 90 instead of falling into the
-  // visibly uneven ~45 Hz cadence produced by elapsed-time frame skipping.
-  const frameDivisor = Math.max(1, Math.floor((displayHz + 1) / 60));
+  // Use a divisor of the display rate, bounded at 60 FPS (30 on modest CPUs).
+  const frameDivisor = Math.max(1, Math.ceil((displayHz - 1) / (LOW_POWER ? 30 : 60)));
   const targetFrameMs = (1000 / displayHz) * frameDivisor;
   const targetFps = 1000 / targetFrameMs;
 
@@ -603,17 +592,15 @@ export function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000 / 60,
 
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
+    antialias: !LOW_POWER,
     alpha: true,
-    // Chromium can otherwise prefer the integrated low-power path even for
-    // this site's full-screen interactive WebGL hero. This remains a hint;
-    // browsers and single-GPU devices are free to ignore it.
-    powerPreference: highDensityDesktop ? "high-performance" : "default",
+    powerPreference: "default",
   });
-  renderer.setPixelRatio(renderPixelRatio(container.clientWidth, container.clientHeight));
+  const budget = createRenderBudget(1400000);
+  renderer.setPixelRatio(budget.ratio(container.clientWidth, container.clientHeight));
 
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
+  controls.enableDamping = !REDUCED;
   controls.dampingFactor = 0.05;
   controls.rotateSpeed = 0.55;
   controls.enablePan = false;
@@ -638,14 +625,12 @@ export function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000 / 60,
   controls.autoRotate = !REDUCED;
   controls.autoRotateSpeed = 0.22;
 
-  // The procedural surface is baked once, but its shader is intentionally
-  // expensive. 512x256 retains ample detail at the reduced high-DPI canvas
-  // resolution and cuts this first-load GPU work by more than half.
-  const surfaceTex = bakeSurfaceTexture(renderer, highDensityDesktop ? 512 : 768);
+  // Bound the one-time procedural workload before the globe's first frame.
+  const surfaceTex = await bakeSurfaceTexture(renderer, LOW_POWER ? 256 : 512);
   const planet = buildPlanet(surfaceTex);
   const clouds = buildClouds(surfaceTex);
   const graticule = buildGraticule(GLOBE_R * 1.004);
-  const stars = buildStarfield();
+  const stars = buildStarfield(LOW_POWER ? 800 : 2200);
 
   // Comfortably outside the globe's apparent silhouette, which perspective
   // makes slightly larger than GLOBE_R at these camera distances.
@@ -879,30 +864,9 @@ export function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000 / 60,
   let viewW = 0;
   let viewH = 0;
   let stacked = false;
-  const qualityKey = "krj-orbit-quality:" + (highDensityDesktop ? "hidpi" : "standard");
-  // Preserve smooth 90 Hz motion by trading a little internal resolution for
-  // the extra frames. The square root keeps total shaded pixels per second
-  // close to the same budget as the 60 Hz path.
-  let qualityScale = highDensityDesktop ? 0.8 * Math.min(1, Math.sqrt(60 / targetFps)) : 1;
-  try {
-    const remembered = Number(localStorage.getItem(qualityKey));
-    if (Number.isFinite(remembered) && remembered >= 0.6 && remembered <= 1) {
-      qualityScale = Math.min(qualityScale, remembered);
-    }
-  } catch (e) {
-    /* Storage unavailable; adaptive quality still works for this visit. */
-  }
-
-  function rememberQuality() {
-    try {
-      localStorage.setItem(qualityKey, qualityScale.toFixed(3));
-    } catch (e) {
-      /* Storage unavailable. */
-    }
-  }
 
   function applyRenderQuality() {
-    const pixelRatio = Math.max(0.75, renderPixelRatio(viewW, viewH) * qualityScale);
+    const pixelRatio = budget.ratio(viewW, viewH);
     renderer.setPixelRatio(pixelRatio);
     renderer.setSize(viewW, viewH, false);
     stars.uniforms.uPixelRatio.value = pixelRatio;
@@ -969,6 +933,7 @@ export function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000 / 60,
   function resize() {
     const w = container.clientWidth;
     const h = container.clientHeight;
+    if (!w || !h) return;
     camera.aspect = w / h;
     viewW = w;
     viewH = h;
@@ -1005,62 +970,8 @@ export function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000 / 60,
   let t = 0;
   let telemetryAccum = 0;
 
-  // The canvas spans two sections now rather than just the hero, so it is
-  // worth not drawing it once it has scrolled away entirely.
-  let onScreen = true;
-  if ("IntersectionObserver" in window) {
-    new IntersectionObserver(
-      (entries) => { onScreen = entries[entries.length - 1].isIntersecting; },
-      { threshold: 0 }
-    ).observe(container);
-  }
-
-  // The display was sampled before WebGL startup. Count actual refreshes
-  // instead of using an elapsed-time threshold, which gives high-refresh
-  // laptop panels a stable cadence rather than irregular frame skips.
-  let lastFrame = 0;
-  let displayFrame = 0;
-  let perfSamples = 0;
-  let slowSamples = 0;
-  let qualityReductions = 0;
-
-  function animate(now) {
-    if (!onScreen) {
-      requestAnimationFrame(animate);
-      return;
-    }
-
-    displayFrame++;
-    if (displayFrame % frameDivisor !== 0) {
-      requestAnimationFrame(animate);
-      return;
-    }
-    const elapsed = lastFrame ? now - lastFrame : targetFrameMs;
-    lastFrame = now;
-
-    // A weak GPU presents as sustained long frame intervals. Step down the
-    // internal framebuffer after a representative sample instead of forcing
-    // every visitor to accept lower quality. At most two reductions are made,
-    // and the 0.75 floor remains considerably sharper than a CSS fallback.
-    if (!document.hidden && qualityReductions < 2) {
-      perfSamples++;
-      if (elapsed > targetFrameMs * 1.45) slowSamples++;
-      if (perfSamples >= 45) {
-        if (slowSamples / perfSamples > 0.28) {
-          qualityScale = Math.max(0.6, qualityScale * 0.8);
-          qualityReductions++;
-          rememberQuality();
-          applyRenderQuality();
-        }
-        perfSamples = 0;
-        slowSamples = 0;
-      }
-    }
-
-    // Capped so a tab coming back from being backgrounded (or the debugger
-    // pausing) doesn't dump one giant catch-up step into the orbits.
-    const dt = Math.min(elapsed, 100) / 1000;
-    t += dt;
+  function animate(now, dt) {
+    if (!REDUCED) t += dt;
 
     // Ease toward the scroll-driven target rather than tracking it directly:
     // a fast wheel delivers the scroll in large jumps, and applying those to
@@ -1135,7 +1046,7 @@ export function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000 / 60,
 
     satellites.forEach((sat) => {
       const target = sat.cfg.id === hoveredId ? 1.55 : 1;
-      sat.scale += (target - sat.scale) * 0.15;
+      sat.scale = REDUCED ? target : sat.scale + (target - sat.scale) * (1 - Math.pow(0.85, dt * 60));
       // Payloads shrink as the camera drops to the limb — at full size a near
       // pass is a cubesat the width of the bio column drifting across it. Not
       // so far that they stop reading as targets, though: they are still the
@@ -1143,7 +1054,7 @@ export function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000 / 60,
       sat.mesh.scale.setScalar(sat.scale * (1 - 0.45 * descent));
     });
 
-    controls.update();
+    controls.update(dt);
     renderer.render(scene, camera);
 
     // ---- HTML labels tracking their cubesats ----
@@ -1188,9 +1099,34 @@ export function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000 / 60,
       }
     }
 
-    requestAnimationFrame(animate);
   }
-  requestAnimationFrame(animate);
+  await prepareShaders(renderer, scene, camera);
+  const loop = createFrameLoop(animate, {
+    fps: targetFps,
+    continuous: !REDUCED,
+    onSlow: () => { budget.reduce(); applyRenderQuality(); },
+  });
+  let onScreen = !("IntersectionObserver" in window);
+  const syncLoop = () => {
+    if (onScreen && !document.hidden) loop.start();
+    else loop.stop();
+  };
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver((entries) => {
+      onScreen = entries[entries.length - 1].isIntersecting;
+      syncLoop();
+    }).observe(container);
+  }
+  document.addEventListener("visibilitychange", syncLoop);
+  window.addEventListener("pagehide", () => loop.stop());
+  window.addEventListener("pageshow", syncLoop);
+  if (REDUCED) {
+    controls.addEventListener("change", syncLoop);
+    container.addEventListener("pointermove", syncLoop);
+    container.addEventListener("pointerleave", syncLoop);
+    window.addEventListener("resize", syncLoop);
+  }
+  syncLoop();
 
   return { scene, camera, renderer, controls };
 }

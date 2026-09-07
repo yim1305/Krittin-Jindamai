@@ -17,6 +17,12 @@
 // ==========================================================================
 
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const LOW_POWER = Boolean(
+  (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
+  (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
+  navigator.connection?.saveData
+);
+document.documentElement.classList.toggle("low-power", LOW_POWER);
 const NAV_H = 64;
 
 // --------------------------------------------------------------------------
@@ -26,6 +32,7 @@ const NAV_H = 64;
 const easeInOutCubic = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 
 let scrollAnim = null;
+let scrollController = null;
 
 function smoothScrollTo(target) {
   const el = typeof target === "string" ? document.querySelector(target) : target;
@@ -39,6 +46,10 @@ function smoothScrollTo(target) {
   const to = Math.max(0, Math.min(el.id === "home" ? 0 : docTop - NAV_H + 1, maxTop));
   const from = window.scrollY;
   const delta = to - from;
+
+  if (scrollAnim) cancelAnimationFrame(scrollAnim);
+  scrollController?.abort();
+  scrollAnim = null;
 
   if (REDUCED || Math.abs(delta) < 2) {
     window.scrollTo(0, to);
@@ -55,6 +66,7 @@ function smoothScrollTo(target) {
   // than each exit path having to remove three listeners by hand.
   let cancelled = false;
   const ac = new AbortController();
+  scrollController = ac;
   const cancel = () => { cancelled = true; };
   window.addEventListener("wheel", cancel, { passive: true, once: true, signal: ac.signal });
   window.addEventListener("touchstart", cancel, { passive: true, once: true, signal: ac.signal });
@@ -522,7 +534,7 @@ function initStarfield() {
     depth: parseFloat(el.dataset.depth) || 0.1,
     drift: parseFloat(el.dataset.drift) || 12, // px per second, leftward
   }));
-  const dynamicBackdrop = Boolean(document.getElementById("home"));
+  const dynamicBackdrop = Boolean(document.getElementById("home")) && !LOW_POWER;
   if (!dynamicBackdrop) document.documentElement.classList.add("static-backdrop");
 
   // ---- continuity across navigations ----
@@ -608,18 +620,16 @@ function initStarfield() {
   // high-refresh displays.
   const FRAME_MS = 1000 / 20;
   let lastFrame = 0;
-  const t0 = performance.now();
+  let frameId = null;
+  let timer = null;
   function frame(now) {
-    if (lastFrame && now - lastFrame < FRAME_MS * 0.9) {
-      requestAnimationFrame(frame);
-      return;
-    }
+    frameId = null;
+    if (document.hidden) return;
+    const dt = lastFrame ? Math.min(now - lastFrame, 100) / 1000 : 0;
     lastFrame = now;
-
-    const secs = (now - t0) / 1000;
     const sy = window.scrollY;
 
-    live.clock = clock0 + secs;
+    live.clock += dt;
     layers.forEach((l, i) => {
       // Bounded to the layer's overscan, unlike the old unbounded background
       // offset. Mutating in place avoids short-lived arrays in this loop.
@@ -630,9 +640,24 @@ function initStarfield() {
     live.nebY = Math.max(-30, Math.min(30, nebBase - sy * 0.006));
 
     paint();
-    requestAnimationFrame(frame);
+    timer = setTimeout(() => {
+      timer = null;
+      frameId = requestAnimationFrame(frame);
+    }, FRAME_MS - 8);
   }
-  requestAnimationFrame(frame);
+  function stopBackdrop() {
+    clearTimeout(timer);
+    cancelAnimationFrame(frameId);
+    timer = frameId = null;
+    lastFrame = 0;
+  }
+  function startBackdrop() {
+    if (!document.hidden && timer === null && frameId === null) frameId = requestAnimationFrame(frame);
+  }
+  document.addEventListener("visibilitychange", () => document.hidden ? stopBackdrop() : startBackdrop());
+  window.addEventListener("pagehide", stopBackdrop);
+  window.addEventListener("pageshow", startBackdrop);
+  startBackdrop();
 
   scheduleMeteor(root);
 }
@@ -651,6 +676,51 @@ function initMarqueeVisibility() {
     entries.forEach((entry) => entry.target.classList.toggle("is-visible", entry.isIntersecting));
   }, { rootMargin: "80px" });
   marquees.forEach((el) => observer.observe(el));
+}
+
+// Keep native controls usable, and never override an explicit user pause.
+function initVideoVisibility() {
+  document.querySelectorAll("video[data-auto-play]").forEach((video) => {
+    let visible = !("IntersectionObserver" in window);
+    let ready = false;
+    let userPaused = false;
+    let automaticPause = false;
+    let resumeManual = false;
+    const autoAllowed = !REDUCED && !navigator.connection?.saveData;
+    const delay = Number(video.dataset.playDelay) || 0;
+    video.controls = true;
+
+    function sync() {
+      if (visible && !document.hidden && ready && !userPaused && (autoAllowed || resumeManual)) {
+        if (video.paused) video.play().catch(() => {});
+      } else if (!video.paused) {
+        resumeManual = true;
+        automaticPause = true;
+        video.pause();
+      }
+    }
+    video.addEventListener("pause", () => {
+      if (automaticPause) automaticPause = false;
+      else userPaused = true;
+    });
+    video.addEventListener("play", () => {
+      userPaused = false;
+      // A pending play() can resolve after the observer has paused the video.
+      if (!visible || document.hidden) sync();
+    });
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver((entries) => {
+        visible = entries[entries.length - 1].isIntersecting;
+        sync();
+      }).observe(video);
+    }
+    setTimeout(() => { ready = true; sync(); }, delay);
+    document.addEventListener("visibilitychange", sync);
+    window.addEventListener("pagehide", () => {
+      if (!video.paused) { automaticPause = true; resumeManual = true; video.pause(); }
+    });
+    window.addEventListener("pageshow", sync);
+  });
 }
 
 function scheduleMeteor(root) {
@@ -806,6 +876,11 @@ function initProjectCarousel() {
 // looking at a blank page.
 // --------------------------------------------------------------------------
 function initPageTransitions() {
+  if (LOW_POWER) {
+    window.addEventListener("pageswap", (e) => e.viewTransition?.skipTransition());
+    window.addEventListener("pagereveal", (e) => e.viewTransition?.skipTransition());
+    return;
+  }
   const supported = "startViewTransition" in document && "onpagereveal" in window;
 
   // Four generations of Projects markup can carry a project href: .proj-label
@@ -943,6 +1018,9 @@ window.addEventListener("pageshow", (e) => {
 initPageTransitions();
 
 function boot() {
+  const syncVisibility = () => document.documentElement.classList.toggle("page-hidden", document.hidden);
+  document.addEventListener("visibilitychange", syncVisibility);
+  syncVisibility();
   initTypingName();
   initIndexTyping();
   initReveal();
@@ -951,6 +1029,7 @@ function boot() {
   initScrollProgress();
   initStarfield();
   initMarqueeVisibility();
+  initVideoVisibility();
   initClock();
   // The Projects section is one 3D scene now (js/system-scene.js, mounted
   // from index.html's module script) with no DOM objects to stagger in, so

@@ -163,7 +163,7 @@ img, video{ max-width:100%; display:block; }
   view-transition-name:star-layer;
 }
 .star-layer{
-  position:absolute; inset:-20%;
+  position:absolute; inset:-80px;
   background-repeat:repeat;
   contain:paint;
   will-change:transform;
@@ -193,6 +193,13 @@ img, video{ max-width:100%; display:block; }
    surfaces for the lifetime of the page. */
 .static-backdrop .nebula,
 .static-backdrop .star-layer{ transform:none; will-change:auto; }
+.static-backdrop .star-layer{ inset:0; }
+.static-backdrop .nebula{ display:none; }
+.low-power .nebula{ display:block; transform:none !important; will-change:auto; }
+.low-power .star-layer{ transform:none !important; will-change:auto; }
+.low-power .eyebrow .dot, .low-power .hero-focus .dot,
+.low-power .hero-name .cursor, .low-power .proj-index .cursor{ animation:none; }
+.page-hidden *, .page-hidden *::before, .page-hidden *::after{ animation-play-state:paused !important; }
 
 /* meteors — spawned by main.js, rare and short */
 .meteor{

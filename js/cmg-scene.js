@@ -28,11 +28,12 @@
 // --------------------------------------------------------------------------
 
 import * as THREE from "three";
+import { LOW_POWER, createRenderBudget, createFrameLoop, prepareShaders, loadNumericCsv as loadCsv, yieldToPage } from "./scene-performance.js?v=20260907a";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-import { createEarthModel } from "./orbit-scene.js?v=20260905e";
+import { createEarthModel } from "./orbit-scene.js?v=20260907a";
 
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -139,18 +140,6 @@ function makeLabel(text, color) {
   return sprite;
 }
 
-async function loadCsv(url) {
-  const text = await (await fetch(url)).text();
-  const lines = text.trim().split(/\r?\n/);
-  const headers = lines[0].split(",");
-  const cols = {};
-  headers.forEach((h) => (cols[h.trim()] = []));
-  for (let i = 1; i < lines.length; i++) {
-    const vals = lines[i].split(",");
-    headers.forEach((h, j) => cols[h.trim()].push(parseFloat(vals[j])));
-  }
-  return cols;
-}
 
 // Binary-search the sample bracketing t, return interpolation fraction and
 // the count of samples at-or-before t (for the charts' "drawn so far" cut).
@@ -365,21 +354,26 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
   const onSeries = [1, 2, 3, 4].map((k) => data[`Omega${k}`]);
   const offSeries = [1, 2, 3, 4].map((k) => offData[`Omega${k}`]);
   const updateChartOn = chartOnEl ? buildChart(chartOnEl, t, onSeries, "Flywheel speed, MTQ desaturation on") : null;
+  await yieldToPage();
   const updateChartOff = chartOffEl ? buildChart(chartOffEl, offData.t, offSeries, "Flywheel speed, MTQ desaturation off") : null;
+  await yieldToPage();
   const diagnosticUpdates = [];
   if (chartGimbalEl && rawData.delta_dot1) {
     diagnosticUpdates.push(buildChart(chartGimbalEl, t,
       [1, 2, 3, 4].map((k) => rawData[`delta_dot${k}`]), "Gimbal rates versus time, radians per second"));
+    await yieldToPage();
   }
   if (chartSingularityEl && rawData.S_RW && rawData.S_CMG) {
     diagnosticUpdates.push(buildChart(chartSingularityEl, t,
       [rawData.S_RW, rawData.S_CMG], "S_RW and S_CMG singularity parameters versus time", ["#64ffe1", "#c9b46a"]));
+    await yieldToPage();
   }
   if (chartTorqueEl && rawData.tau_dist_x && rawData.tau_mtq_x) {
     const magnitude = (prefix) => t.map((_, i) =>
       Math.hypot(rawData[`${prefix}_x`][i], rawData[`${prefix}_y`][i], rawData[`${prefix}_z`][i]) * 1e6);
     diagnosticUpdates.push(buildChart(chartTorqueEl, t,
       [magnitude("tau_dist"), magnitude("tau_mtq")], "Disturbance and MTQ torque magnitudes versus time, micronewton meters", ["#c9b46a", "#64ffe1"]));
+    await yieldToPage();
   }
 
   const scene = new THREE.Scene();
@@ -392,14 +386,14 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
 
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
+    antialias: !LOW_POWER,
     alpha: true,
-    powerPreference: "high-performance",
+    powerPreference: "default",
   });
   renderer.setClearColor(0x000000, 0);
   renderer.autoClear = false;
-  const pixelRatioFor = (w, h) =>
-    Math.max(0.75, Math.min(window.devicePixelRatio || 1, 1.4, Math.sqrt(1200000 / Math.max(1, w * h))));
+  const budget = createRenderBudget(1000000, 1.4);
+  const pixelRatioFor = (w, h) => budget.ratio(w, h);
 
   // ---- the bus: real 12U proportions (240 x 230 x 360mm), long axis local Z.
   const bodyGroup = new THREE.Group();
@@ -429,19 +423,28 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
   orbitCamera.up.set(0, 0, 1);
   // Slightly larger than the nominal unit sphere so the globe reads clearly
   // in the widened right rail while the LEO trajectory still clears its limb.
-  const earth = createEarthModel(renderer, 1.05);
+  const earth = await createEarthModel(renderer, 1.05);
   earth.planet.uniforms.uBrightness.value = 0.48;
   earth.clouds.uniforms.uFade.value = 0.45;
   earth.group.rotation.x = Math.PI / 2; // model north (+Y) -> ECI north (+Z)
   orbitScene.add(earth.group);
 
-  const orbitPoints = t.map((_, i) => new THREE.Vector3(data.rx[i], data.ry[i], data.rz[i])
-    .divideScalar(EARTH_RADIUS_KM));
+  const orbitPositions = new Float32Array(t.length * 3);
+  let orbitExtent = 1;
+  for (let i = 0; i < t.length; i++) {
+    const x = data.rx[i] / EARTH_RADIUS_KM;
+    const y = data.ry[i] / EARTH_RADIUS_KM;
+    const z = data.rz[i] / EARTH_RADIUS_KM;
+    orbitPositions[i * 3] = x;
+    orbitPositions[i * 3 + 1] = y;
+    orbitPositions[i * 3 + 2] = z;
+    orbitExtent = Math.max(orbitExtent, Math.hypot(x, y, z));
+  }
   // Keep only a small framing margin so the Earth fills the overview and the
   // gap before the aligned MTQ plot does not become visually empty.
-  const orbitExtent = orbitPoints.reduce((extent, point) => Math.max(extent, point.length()), 1) + 0.08;
+  orbitExtent += 0.08;
   const trajectoryGeometry = new LineGeometry();
-  trajectoryGeometry.setPositions(orbitPoints.flatMap((point) => point.toArray()));
+  trajectoryGeometry.setPositions(orbitPositions);
   const trajectoryMaterial = new LineMaterial({
     color: 0x9adbd4, linewidth: 2.2, transparent: true, opacity: 0.75, depthWrite: false,
   });
@@ -537,7 +540,16 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
 
   // Two scissored views share one WebGL context and the same simulation clock.
   let views = [];
+  let shadersReady = false;
+  let canvasVisible = !("IntersectionObserver" in window);
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver((entries) => {
+      canvasVisible = entries[entries.length - 1].isIntersecting;
+      if (canvasVisible) renderViews();
+    }).observe(canvas);
+  }
   function renderViews() {
+    if (!shadersReady || !canvasVisible || document.hidden) return;
     // Both views use the same ECI camera basis. Recenter the close-up on
     // the bus while preserving the orbit camera's orientation, so -r (nadir)
     // has the same screen direction as satellite -> Earth in the overview.
@@ -595,6 +607,9 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
     renderViews();
   }
 
+  await prepareShaders(renderer, scene, camera);
+  await prepareShaders(renderer, orbitScene, orbitCamera);
+  shadersReady = true;
   update(0); // settle to a pose before the first paint either way
   updateChartOn && updateChartOn(0);
   updateChartOff && updateChartOff(0);
@@ -614,20 +629,14 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
   // Static settle, no loop — same rule every scene on this site follows.
   if (REDUCED) return;
 
-  let frame = null;
   let visible = false;
-  let lastDraw = 0;
   let lastChartUpdate = 0;
   let previousTick = null;
   let elapsedSeconds = 0;
   let previousSimTime = 0;
   let previousZoom = 0;
-  const FRAME_INTERVAL = 1000 / 30;
 
   function tick(now) {
-    frame = requestAnimationFrame(tick);
-    if (lastDraw && now - lastDraw < FRAME_INTERVAL * 0.9) return;
-    lastDraw = now;
     // Start at zero when first visible and pause the clock offscreen.
     if (previousTick !== null) elapsedSeconds += (now - previousTick) / 1000;
     previousTick = now;
@@ -638,10 +647,13 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
     const chartBoundary = simTime < previousSimTime ||
       (previousSimTime <= T_SPLIT_SIM && simTime > T_SPLIT_SIM) ||
       (previousSimTime < tMax && simTime === tMax);
+    const poseChanged = simTime !== previousSimTime;
     previousSimTime = simTime;
 
-    update(simTime); // body attitude + nadir — cheap, every frame
-    renderViews();
+    if (poseChanged) {
+      update(simTime);
+      renderViews();
+    }
 
     // Animate the scale transition at the scene's 30 Hz, then return to the
     // inexpensive chart/HUD cadence. The series points are never rebuilt.
@@ -653,15 +665,14 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
       updateHud(simTime);
     }
   }
-  function start() {
-    if (frame !== null) return;
-    frame = requestAnimationFrame(tick);
-  }
+  const loop = createFrameLoop(tick, {
+    fps: LOW_POWER ? 20 : 30,
+    onSlow: () => { budget.reduce(); resize(); },
+  });
+  const start = () => loop.start();
   function stop() {
     previousTick = null;
-    if (frame === null) return;
-    cancelAnimationFrame(frame);
-    frame = null;
+    loop.stop();
   }
 
   if ("IntersectionObserver" in window) {
@@ -686,4 +697,6 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
     if (document.hidden) stop();
     else if (visible) start();
   });
+  window.addEventListener("pagehide", stop);
+  window.addEventListener("pageshow", () => { if (visible) start(); });
 }

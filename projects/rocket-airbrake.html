@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css?v=20260906z">
+  <link rel="stylesheet" href="../css/style.css?v=20260907a">
 
   <!-- In <head> and render-blocking, deliberately — see index.html. -->
-  <script src="../js/main.js?v=20260906c"></script>
+  <script src="../js/main.js?v=20260907a"></script>
 </head>
 <body class="terragator-page">
 
@@ -56,7 +56,7 @@
        `view-transition-name:proj-media` (on `.detail-media-inner`). -->
   <div class="detail-media">
     <div class="detail-media-inner">
-      <video id="terragator-video" muted playsinline loop preload="metadata">
+      <video id="terragator-video" data-auto-play data-play-delay="1000" muted playsinline loop controls preload="metadata">
         <source src="../assets/video/terragator.mp4" type="video/mp4">
       </video>
     </div>
@@ -177,32 +177,7 @@
        regardless of the autoplay attribute. .catch() swallows a rejected
        play() rather than surfacing an unhandled-promise console error if a
        browser still refuses it. -->
-  <script>
-    (function () {
-      var v = document.getElementById("terragator-video");
-      if (!v) return;
-      v.muted = true;
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      var visible = !("IntersectionObserver" in window);
-      var delayDone = false;
-
-      function syncPlayback() {
-        if (visible && delayDone) v.play().catch(function () {});
-        else v.pause();
-      }
-
-      if ("IntersectionObserver" in window) {
-        new IntersectionObserver(function (entries) {
-          visible = entries[entries.length - 1].isIntersecting;
-          syncPlayback();
-        }, { rootMargin: "120px" }).observe(v);
-      }
-      setTimeout(function () {
-        delayDone = true;
-        syncPlayback();
-      }, 1000);
-    })();
-  </script>
+  <!-- main.js manages delayed playback and pauses the video offscreen. -->
 
 </body>
 </html>

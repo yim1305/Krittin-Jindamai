@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css?v=20260906q">
+  <link rel="stylesheet" href="../css/style.css?v=20260907a">
 
   <!-- In <head> and render-blocking, deliberately — see index.html. -->
-  <script src="../js/main.js?v=20260906c"></script>
+  <script src="../js/main.js?v=20260907a"></script>
 
   <!-- Import map for js/cbf-scene.js's "three" specifier — same CDN build the
        other three scenes use, see the note in index.html. -->
@@ -153,7 +153,7 @@
         if (mounted) return;
         mounted = true;
         try {
-          const { initCbfScene } = await import("../js/cbf-scene.js?v=20260906h");
+          const { initCbfScene } = await import("../js/cbf-scene.js?v=20260907a");
           await initCbfScene({
             canvas,
             runUrl: "../assets/data/cbf-run.csv?v=20260906h",

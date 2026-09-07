@@ -18,14 +18,14 @@
        whenever style.css, main.js, or a scene module changes, in every HTML
        file that references it — see the matching tags in css/style.css and
        js/main.js and every projects/*.html. -->
-  <link rel="stylesheet" href="css/style.css?v=20260906o">
+  <link rel="stylesheet" href="css/style.css?v=20260907a">
 
   <!-- In <head> and render-blocking, deliberately. `pagereveal` fires before
        the document's first render, and on a page this size the browser can
        paint before an end-of-body script has run — which meant the page
        transition's direction flag and the carried-over backdrop offsets were
        being applied too late to affect the incoming snapshot. -->
-  <script src="js/main.js?v=20260906c"></script>
+  <script src="js/main.js?v=20260907a"></script>
 
   <!-- Import map so orbit-scene.js's "three" / "three/addons/..." specifiers resolve
        to the CDN build — required because OrbitControls.js itself imports the bare
@@ -710,6 +710,11 @@
   <footer>krittin jindamai — mission log — 2026</footer>
 
   <script type="module">
+    // Only one WebGL scene initializes at a time, even after a fast scroll.
+    let startupQueue = Promise.resolve();
+    function queueStartup(task) {
+      startupQueue = startupQueue.then(task, task);
+    }
     // The Projects scene is mounted LAZILY, on approach, rather than at load.
     // Creating the WebGL context and running its two equirectangular surface
     // bakes is its main setup cost. It is deferred so that work never competes
@@ -727,8 +732,8 @@
         try {
           // A real dynamic import: the 135 KB scene and its Three.js add-ons
           // are neither downloaded nor parsed until Projects approaches.
-          const { initSystemScene } = await import("./js/system-scene.js?v=20260906o");
-          initSystemScene({
+          const { initSystemScene } = await import("./js/system-scene.js?v=20260907a");
+          await initSystemScene({
             canvas: systemCanvas,
             labelLayer: document.getElementById("system-labels"),
             infoPanel: document.getElementById("proj-info"),
@@ -744,14 +749,14 @@
             entries.forEach((e) => {
               if (!e.isIntersecting) return;
               io.disconnect();
-              void mountSystem();
+              queueStartup(mountSystem);
             });
           },
-          { rootMargin: "700px" }
+          { rootMargin: "150px" }
         );
         io.observe(systemCanvas);
       } else {
-        void mountSystem();
+        queueStartup(mountSystem);
       }
     }
 
@@ -784,7 +789,7 @@
         // follows the active display, so this distinguishes a 90/144/165 Hz
         // laptop panel from a 60 Hz HDMI monitor without browser sniffing.
         const [{ initOrbitScene }, displayFrameMs] = await Promise.all([
-          import("./js/orbit-scene.js?v=20260906d"),
+          import("./js/orbit-scene.js?v=20260907a"),
           measureDisplayFrameMs(),
         ]);
 
@@ -797,7 +802,7 @@
           count: document.getElementById("payload-count"),
         };
 
-        initOrbitScene({
+        await initOrbitScene({
           canvas: document.getElementById("orbit-canvas"),
           labelLayer: document.getElementById("orbit-labels"),
           displayFrameMs,
@@ -822,11 +827,27 @@
 
     // requestIdleCallback runs after the first paint in Chromium. The timeout
     // prevents the globe from waiting behind a permanently busy main thread;
-    // other browsers use a two-frame fallback with the same paint-first goal.
-    if ("requestIdleCallback" in window) {
-      requestIdleCallback(() => void startOrbitScene(), { timeout: 350 });
+    // other browsers yield through a timer after the next paint.
+    // A restored #projects navigation should not also build the hidden hero.
+    const orbitContainer = document.getElementById("orbit-canvas").parentElement;
+    const scheduleOrbit = () => {
+      requestAnimationFrame(() => {
+        if ("requestIdleCallback" in window) {
+          requestIdleCallback(() => queueStartup(startOrbitScene), { timeout: 700 });
+        } else {
+          setTimeout(() => queueStartup(startOrbitScene), 50);
+        }
+      });
+    };
+    if ("IntersectionObserver" in window) {
+      const orbitObserver = new IntersectionObserver((entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        orbitObserver.disconnect();
+        scheduleOrbit();
+      });
+      orbitObserver.observe(orbitContainer);
     } else {
-      requestAnimationFrame(() => requestAnimationFrame(() => void startOrbitScene()));
+      scheduleOrbit();
     }
   </script>
 

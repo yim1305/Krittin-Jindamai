@@ -45,6 +45,7 @@
 // --------------------------------------------------------------------------
 
 import * as THREE from "three";
+import { LOW_POWER, createRenderBudget, createFrameLoop, prepareShaders, loadNumericCsv as loadCsv } from "./scene-performance.js?v=20260907a";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
@@ -241,18 +242,6 @@ function flatLine(points, { color, width, opacity, dashed = false, dashSize = 0.
 // Data.
 // --------------------------------------------------------------------------
 
-async function loadCsv(url) {
-  const text = await (await fetch(url)).text();
-  const lines = text.trim().split(/\r?\n/);
-  const headers = lines[0].split(",").map((h) => h.trim());
-  const cols = {};
-  headers.forEach((h) => (cols[h] = []));
-  for (let i = 1; i < lines.length; i++) {
-    const vals = lines[i].split(",");
-    headers.forEach((h, j) => cols[h].push(parseFloat(vals[j])));
-  }
-  return cols;
-}
 
 // Binary search for the sample bracketing tv, with the interpolation fraction.
 function findFrame(t, tv) {
@@ -293,15 +282,15 @@ export async function initCbfScene({ canvas, runUrl, spiralUrl, wallsUrl, hudEl 
   const camera = new THREE.PerspectiveCamera(CAM_FOV, 1, 0.1, 200);
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
+    antialias: !LOW_POWER,
     alpha: true,
-    powerPreference: "high-performance",
+    powerPreference: "default",
   });
   renderer.setClearColor(0x000000, 0);
   // Same budget as the other two scenes: never above 1.4x, and lower still on
   // a large canvas, so a 4K display doesn't quietly quadruple the fill cost.
-  const pixelRatioFor = (w, h) =>
-    Math.max(0.75, Math.min(window.devicePixelRatio || 1, 1.4, Math.sqrt(1200000 / Math.max(1, w * h))));
+  const budget = createRenderBudget(1000000, 1.4);
+  const pixelRatioFor = (w, h) => budget.ratio(w, h);
 
   // ---- floor: one dim plane plus a 1 m hairline grid. The plane is barely
   // there (0.16) on purpose — it gives the room a surface without shutting out
@@ -502,6 +491,7 @@ export async function initCbfScene({ canvas, runUrl, spiralUrl, wallsUrl, hudEl 
     renderer.render(scene, camera);
   }
 
+  await prepareShaders(renderer, scene, camera);
   // First paint: settle on the opening pose before anything is scheduled.
   poseAt(0);
   applyPose(0);
@@ -525,42 +515,38 @@ export async function initCbfScene({ canvas, runUrl, spiralUrl, wallsUrl, hudEl 
   }
 
   const LOOP_SECONDS = tMax / PLAYBACK_RATE;
-  const FRAME_INTERVAL = 1000 / 30;
-  let frame = null;
   let visible = false;
   let elapsedSeconds = 0;
   let previousTick = null;
-  let lastDraw = 0;
   let lastHud = 0;
+  let lastSimTime = null;
 
   function tick(now) {
-    frame = requestAnimationFrame(tick);
-    if (lastDraw && now - lastDraw < FRAME_INTERVAL * 0.9) return;
-    lastDraw = now;
     // Clock starts when the scene first becomes visible and pauses offscreen.
     if (previousTick !== null) elapsedSeconds += (now - previousTick) / 1000;
     previousTick = now;
 
     const phase = elapsedSeconds % (LOOP_SECONDS + END_HOLD_SECONDS);
     const simTime = Math.min(phase * PLAYBACK_RATE, tMax);
+    if (simTime === lastSimTime) return;
+    lastSimTime = simTime;
     const index = poseAt(simTime);
     applyPose(index);
     renderer.render(scene, camera);
 
-    if (now - lastHud > 150) {
+    if (now - lastHud > 150 || simTime === tMax) {
       lastHud = now;
       updateHud(simTime);
     }
   }
-  function start() {
-    if (frame !== null) return;
-    frame = requestAnimationFrame(tick);
-  }
+  const loop = createFrameLoop(tick, {
+    fps: LOW_POWER ? 20 : 30,
+    onSlow: () => { budget.reduce(); resize(); },
+  });
+  const start = () => loop.start();
   function stop() {
     previousTick = null;
-    if (frame === null) return;
-    cancelAnimationFrame(frame);
-    frame = null;
+    loop.stop();
   }
 
   if ("IntersectionObserver" in window) {
@@ -583,4 +569,6 @@ export async function initCbfScene({ canvas, runUrl, spiralUrl, wallsUrl, hudEl 
     if (document.hidden) stop();
     else if (visible) start();
   });
+  window.addEventListener("pagehide", stop);
+  window.addEventListener("pageshow", () => { if (visible) start(); });
 }

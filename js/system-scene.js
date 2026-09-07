@@ -79,6 +79,7 @@
 // ==========================================================================
 
 import * as THREE from "three";
+import { LOW_POWER, createRenderBudget, createFrameLoop, prepareShaders } from "./scene-performance.js?v=20260907a";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 // Fat lines. Every path in this scene (the flyby trajectory, the orbit ring,
 // the CBF trail, the hop arc) is drawn with these rather than as 3D tube
@@ -176,9 +177,8 @@ const COMMUNIGATOR_SCALE = 0.582; // 1.3x
 const DECORATIVE_SAT_SCALE_A = 0.34;
 const DECORATIVE_SAT_SCALE_B = 0.29;
 
-// The scene bakes both Earth and Moon on approach. 768 is sufficient for the
-// posterised surfaces; high-density laptops step down further at init time.
-const BAKE_W = 768;
+// Planet bakes are bounded at startup; modest devices use half this width.
+const BAKE_W = 512;
 
 // --------------------------------------------------------------------------
 // Layout presets, widest first. `min` is the canvas aspect (w/h) at or above
@@ -424,7 +424,7 @@ const NOISE_GLSL = /* glsl */ `
 // fragment shader differs. The direction reconstruction mirrors
 // THREE.SphereGeometry's UV convention exactly, so the bake lands on the mesh
 // with no seam; change one and you must change the other.
-function bakeEquirect(renderer, width, bodyGLSL) {
+async function bakeEquirect(renderer, width, bodyGLSL) {
   const height = width / 2;
 
   const target = new THREE.WebGLRenderTarget(width, height, {
@@ -437,7 +437,7 @@ function bakeEquirect(renderer, width, bodyGLSL) {
     stencilBuffer: false,
   });
 
-  renderEquirect(renderer, target, bodyGLSL);
+  await renderEquirect(renderer, target, bodyGLSL);
   return target.texture;
 }
 
@@ -445,7 +445,7 @@ function bakeEquirect(renderer, width, bodyGLSL) {
 // the SAME shader into a tiny target of its own and read it back — see
 // sampleEarthSurface(). Two callers, one definition, no chance of the analysis
 // drifting away from what the globe actually shows.
-function renderEquirect(renderer, target, bodyGLSL) {
+async function renderEquirect(renderer, target, bodyGLSL) {
   const bakeScene = new THREE.Scene();
   const bakeCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   const bakeMat = new THREE.ShaderMaterial({
@@ -472,6 +472,7 @@ function renderEquirect(renderer, target, bodyGLSL) {
 
   const prevTarget = renderer.getRenderTarget();
   renderer.setRenderTarget(target);
+  await prepareShaders(renderer, bakeScene, bakeCam);
   renderer.render(bakeScene, bakeCam);
   renderer.setRenderTarget(prevTarget);
 
@@ -1437,12 +1438,12 @@ function disposeGroup(group) {
 // --------------------------------------------------------------------------
 const ANALYSIS_W = 128;
 
-function sampleEarthSurface(renderer) {
+async function sampleEarthSurface(renderer) {
   const target = new THREE.WebGLRenderTarget(ANALYSIS_W, ANALYSIS_W / 2, {
     depthBuffer: false,
     stencilBuffer: false,
   });
-  renderEquirect(renderer, target, EARTH_BAKE_GLSL);
+  await renderEquirect(renderer, target, EARTH_BAKE_GLSL);
 
   const w = ANALYSIS_W;
   const h = ANALYSIS_W / 2;
@@ -1541,37 +1542,24 @@ const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
 const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 
 // --------------------------------------------------------------------------
-export function initSystemScene({ canvas, labelLayer, infoPanel }) {
+export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(CAM_FOV, 1, 0.1, 100);
 
-  const highDensityDesktop =
-    window.innerWidth > 900 &&
-    (window.devicePixelRatio || 1) > 1.25 &&
-    window.matchMedia("(pointer: fine)").matches;
-
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
+    antialias: !LOW_POWER,
     alpha: true,
-    powerPreference: highDensityDesktop ? "high-performance" : "default",
+    powerPreference: "default",
   });
-  // Capped at 1.6 rather than the usual 2. The canvas is 68% taller than the
-  // section it sits in (see the spill note in resize()), so at DPR 2 this
-  // would be pushing roughly 6.8M pixels a frame on a 1440-wide laptop, every
-  // frame, for a scene whose whole budget argument is "must not cost anything
-  // noticeable". 1.6 gives back about a third of that and the difference is
-  // not visible on a body made of flat posterised bands.
-  // Cap framebuffer area as well as DPR. High-density laptop panels otherwise
-  // render several times more pixels than the same laptop's HDMI monitor.
-  const maxRenderPixels = highDensityDesktop ? 1600000 : 2400000;
-  const pixelRatioFor = (w, h) =>
-    Math.max(0.75, Math.min(window.devicePixelRatio || 1, 1.6, Math.sqrt(maxRenderPixels / Math.max(1, w * h))));
+  // Budget the whole spilling canvas, including the portion below Projects.
+  const budget = createRenderBudget(1600000);
+  const pixelRatioFor = (w, h) => budget.ratio(w, h);
   renderer.setPixelRatio(pixelRatioFor(canvas.clientWidth, canvas.clientHeight));
 
-  const bakeWidth = highDensityDesktop ? 512 : BAKE_W;
-  const earthTex = bakeEquirect(renderer, bakeWidth, EARTH_BAKE_GLSL);
-  const moonTex = bakeEquirect(renderer, bakeWidth, MOON_BAKE_GLSL);
+  const bakeWidth = LOW_POWER ? 256 : BAKE_W;
+  const earthTex = await bakeEquirect(renderer, bakeWidth, EARTH_BAKE_GLSL);
+  const moonTex = await bakeEquirect(renderer, bakeWidth, MOON_BAKE_GLSL);
 
   // ---- Earth -------------------------------------------------------------
   // Three nested groups, each with exactly one job — which is what makes the
@@ -1641,7 +1629,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // It cannot go much lower: at 0 the contact point is exactly on the limb and
   // anything past that puts the wheels on the far side, floating. Keep it
   // above ~0.12.
-  const surface = sampleEarthSurface(renderer);
+  const surface = await sampleEarthSurface(renderer);
   const EARTH_YAW = chooseEarthYaw(surface, EARTH_TILT_X);
   const robotWant = RIGHT.clone().multiplyScalar(0.592).addScaledVector(UP, 0.654).addScaledVector(DIR, 0.18).normalize();
   const robotHome = greenestNear(surface, EARTH_TILT_X, EARTH_YAW, robotWant);
@@ -2805,28 +2793,16 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // tab-hide, and under prefers-reduced-motion everything is placed at its
   // resting state and the loop stops for good.
   const INTRO_MS = 2200;
-  const ACTIVE_FPS = 45;
-  const ACTIVE_INTERVAL = 1000 / ACTIVE_FPS;
-  const DRIFT_FPS = 12;
-  const DRIFT_INTERVAL = 1000 / DRIFT_FPS;
+  const ACTIVE_FPS = LOW_POWER ? 20 : 30;
+  const DRIFT_FPS = LOW_POWER ? 6 : 12;
   const CLOUD_SPEED = 0.011; // radians per second
 
   let introStart = null;
   let introDone = REDUCED;
-  let frame = null;
-  let lastActive = 0;
-  let lastDraw = 0;
   let visible = false;
+  let hoverBusy = false;
 
   function tick(now) {
-    frame = requestAnimationFrame(tick);
-
-    // Arrival and hover easing do not need to follow a 90/144/165 Hz panel.
-    // A bounded active cadence saves the second WebGL context from redrawing
-    // more often than the motion can communicate.
-    if (lastActive && now - lastActive < ACTIVE_INTERVAL * 0.9) return;
-    lastActive = now;
-
     if (!introDone) {
       if (introStart === null) introStart = now;
       const p = Math.min((now - introStart) / INTRO_MS, 1);
@@ -2835,7 +2811,6 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
       render();
       if (p >= 1) {
         introDone = true;
-        lastDraw = now;
       }
       return;
     }
@@ -2844,6 +2819,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     // once and stop the loop rather than spinning on a no-op.
     if (REDUCED) {
       stop();
+      updateHover();
       render();
       return;
     }
@@ -2851,10 +2827,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     updateHover();
     // Hover easing is evaluated at the active cadence while it is running,
     // even if the slower cloud throttle would otherwise skip the draw.
-    const hoverBusy = updateHoverEasing();
-
-    if (!hoverBusy && now - lastDraw < DRIFT_INTERVAL) return;
-    lastDraw = now;
+    hoverBusy = updateHoverEasing();
     ambient(now);
     renderFrame();
   }
@@ -2868,14 +2841,16 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     clouds.mesh.rotation.y = seconds * CLOUD_SPEED;
   }
 
-  function start() {
-    if (frame !== null) return;
-    frame = requestAnimationFrame(tick);
-  }
-  function stop() {
-    if (frame === null) return;
-    cancelAnimationFrame(frame);
-    frame = null;
+  await prepareShaders(renderer, scene, camera);
+  const loop = createFrameLoop(tick, {
+    fps: () => !introDone || hoverBusy || pointerMoved ? ACTIVE_FPS : DRIFT_FPS,
+    onSlow: () => { budget.reduce(); resize(); if (introDone) applySettled(); },
+  });
+  const start = () => loop.start();
+  const stop = () => loop.stop();
+  if (REDUCED) {
+    canvas.addEventListener("pointermove", start);
+    canvas.addEventListener("pointerleave", start);
   }
 
   if ("IntersectionObserver" in window) {
@@ -2887,7 +2862,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
           else stop();
         });
       },
-      { rootMargin: "120px" }
+      { rootMargin: "0px" }
     );
     io.observe(canvas);
   } else {
@@ -2901,6 +2876,9 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     if (document.hidden) stop();
     else if (visible) start();
   });
+
+  window.addEventListener("pagehide", stop);
+  window.addEventListener("pageshow", () => { if (visible) start(); });
 
   return { resize, render, start, stop };
 }
