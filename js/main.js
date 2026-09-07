@@ -23,6 +23,29 @@ const LOW_POWER = Boolean(
   navigator.connection?.saveData
 );
 document.documentElement.classList.toggle("low-power", LOW_POWER);
+
+// Every 3D scene (hero, Projects, thesis.html, ros-research.html) resolves
+// Three.js through a bare "three" specifier via <script type="importmap">,
+// which Safari only shipped from 16.4 onward (Mar 2023) — an iPad frozen on
+// an older iPadOS gets nothing: the import throws, each scene's own
+// try/catch swallows it into console.error, and a visitor just sees a blank
+// canvas with no explanation. window.sceneFallback() gives every scene's
+// mounting script a shared one-line way to show a real message instead.
+const SUPPORTS_IMPORTMAP = typeof HTMLScriptElement !== "undefined" &&
+  typeof HTMLScriptElement.supports === "function" &&
+  HTMLScriptElement.supports("importmap");
+window.SUPPORTS_IMPORTMAP = SUPPORTS_IMPORTMAP;
+window.sceneFallback = function sceneFallback(canvas, message) {
+  if (!canvas || canvas.dataset.fallbackShown) return;
+  canvas.dataset.fallbackShown = "1";
+  canvas.style.display = "none";
+  const note = document.createElement("div");
+  note.className = "scene-fallback";
+  note.textContent = message ||
+    "3D preview needs a newer browser — Safari 16.4+, or a recent Chrome/Firefox.";
+  canvas.insertAdjacentElement("afterend", note);
+};
+
 let NAV_H = 64;
 const COMPACT_LAYOUT = window.matchMedia("(max-width: 1239px), (hover: none) and (max-width: 1400px)");
 

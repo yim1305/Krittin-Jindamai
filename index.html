@@ -18,14 +18,14 @@
        whenever style.css, main.js, or a scene module changes, in every HTML
        file that references it — see the matching tags in css/style.css and
        js/main.js and every projects/*.html. -->
-  <link rel="stylesheet" href="css/style.css?v=20260907e">
+  <link rel="stylesheet" href="css/style.css?v=20260907f">
 
   <!-- In <head> and render-blocking, deliberately. `pagereveal` fires before
        the document's first render, and on a page this size the browser can
        paint before an end-of-body script has run — which meant the page
        transition's direction flag and the carried-over backdrop offsets were
        being applied too late to affect the incoming snapshot. -->
-  <script src="js/main.js?v=20260907a"></script>
+  <script src="js/main.js?v=20260907b"></script>
 
   <!-- Import map so orbit-scene.js's "three" / "three/addons/..." specifiers resolve
        to the CDN build — required because OrbitControls.js itself imports the bare
@@ -724,7 +724,9 @@
     // layout keeps the canvas now (there are no flat fallback stills any
     // more), just at a taller portrait framing the scene picks for itself.
     const systemCanvas = document.getElementById("system-canvas");
-    if (systemCanvas) {
+    if (systemCanvas && !window.SUPPORTS_IMPORTMAP) {
+      window.sceneFallback(systemCanvas);
+    } else if (systemCanvas) {
       let systemMounted = false;
       const mountSystem = async () => {
         if (systemMounted) return;
@@ -829,25 +831,30 @@
     // prevents the globe from waiting behind a permanently busy main thread;
     // other browsers yield through a timer after the next paint.
     // A restored #projects navigation should not also build the hidden hero.
-    const orbitContainer = document.getElementById("orbit-canvas").parentElement;
-    const scheduleOrbit = () => {
-      requestAnimationFrame(() => {
-        if ("requestIdleCallback" in window) {
-          requestIdleCallback(() => queueStartup(startOrbitScene), { timeout: 700 });
-        } else {
-          setTimeout(() => queueStartup(startOrbitScene), 50);
-        }
-      });
-    };
-    if ("IntersectionObserver" in window) {
-      const orbitObserver = new IntersectionObserver((entries) => {
-        if (!entries.some((entry) => entry.isIntersecting)) return;
-        orbitObserver.disconnect();
-        scheduleOrbit();
-      });
-      orbitObserver.observe(orbitContainer);
+    const orbitCanvas = document.getElementById("orbit-canvas");
+    const orbitContainer = orbitCanvas.parentElement;
+    if (!window.SUPPORTS_IMPORTMAP) {
+      window.sceneFallback(orbitCanvas);
     } else {
-      scheduleOrbit();
+      const scheduleOrbit = () => {
+        requestAnimationFrame(() => {
+          if ("requestIdleCallback" in window) {
+            requestIdleCallback(() => queueStartup(startOrbitScene), { timeout: 700 });
+          } else {
+            setTimeout(() => queueStartup(startOrbitScene), 50);
+          }
+        });
+      };
+      if ("IntersectionObserver" in window) {
+        const orbitObserver = new IntersectionObserver((entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          orbitObserver.disconnect();
+          scheduleOrbit();
+        });
+        orbitObserver.observe(orbitContainer);
+      } else {
+        scheduleOrbit();
+      }
     }
   </script>
 
