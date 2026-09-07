@@ -8,7 +8,8 @@
   const M = { l: 68, r: 20, t: 14, b: 30 };
   const COLORS = { altitude: "#64ffe1", velocity: "#c9b46a" };
 
-  function makeSvg(points, key, title, unit) {
+  function makeSvg(points, key, title, unit, width = W) {
+    const W = width;
     const plotW = W - M.l - M.r;
     const plotH = H - M.t - M.b;
     const tMax = points[points.length - 1].t || 1;
@@ -90,7 +91,23 @@
       ];
       configs.forEach(([key, title, unit]) => {
         const target = charts.querySelector(`[data-flight-chart="${key}"]`);
-        if (target) target.prepend(makeSvg(points, key, title, unit));
+        if (!target) return;
+        let width = 0;
+        let timer;
+        function resize() {
+          const nextWidth = Math.max(320, Math.min(W, Math.round(target.clientWidth || W)));
+          if (nextWidth === width) return;
+          width = nextWidth;
+          target.querySelector("svg")?.remove();
+          target.prepend(makeSvg(points, key, title, unit, width));
+        }
+        resize();
+        if ("ResizeObserver" in window) {
+          new ResizeObserver(() => {
+            clearTimeout(timer);
+            timer = setTimeout(resize, 160);
+          }).observe(target);
+        }
       });
     } catch (error) {
       charts.textContent = "flight data unavailable";

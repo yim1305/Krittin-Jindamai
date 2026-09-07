@@ -40,6 +40,7 @@ const GREEN = 0xa0ca92;
 
 const GLOBE_R = 1.5;
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const COMPACT_LAYOUT = window.matchMedia("(max-width: 1239px), (hover: none) and (max-width: 1400px)");
 
 // A DPR-only cap is misleading on laptop panels: 1440x900 at DPR 2 asks the
 // integrated GPU to shade 5.2 million pixels every frame, while a larger HDMI
@@ -776,6 +777,7 @@ export async function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000
   renderer.domElement.addEventListener("pointerdown", (e) => {
     pointerDownPos = { x: e.clientX, y: e.clientY };
   });
+  renderer.domElement.addEventListener("pointercancel", () => { pointerDownPos = null; });
   renderer.domElement.addEventListener("pointerup", (e) => {
     if (!pointerDownPos) return;
     const dx = e.clientX - pointerDownPos.x;
@@ -809,7 +811,6 @@ export async function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000
   // the width. Stacked layouts put it back in the middle.
   const SCENE_CENTER_HERO = 0.68;
   const SCENE_CENTER_ABOUT = 0.75;
-  const STACK_BREAKPOINT = 900;
 
   // ---- descent -------------------------------------------------------------
   // Driven by main.js through window.__descentP: 0 is the hero's far-orbit
@@ -918,7 +919,7 @@ export async function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000
     // layout has neither (main.js pins both at 0 below the same breakpoint),
     // but the globe still has to clear the name stacked above it, so it gets a
     // fixed downward shift instead.
-    const panY = stacked ? viewH * 0.16 : horizonPan(d, viewH) * p - rise;
+    const panY = stacked ? 0 : horizonPan(d, viewH) * p - rise;
 
     if (centerX === 0.5 && panY === 0) {
       camera.clearViewOffset(); // also calls updateProjectionMatrix
@@ -931,8 +932,8 @@ export async function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000
   }
 
   function resize() {
-    const w = container.clientWidth;
-    const h = container.clientHeight;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
     if (!w || !h) return;
     camera.aspect = w / h;
     viewW = w;
@@ -942,7 +943,7 @@ export async function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000
     // Keyed off innerWidth, not the container: this has to flip at exactly
     // the same point as the `max-width: 900px` rule that stacks the hero, and
     // a scrollbar makes the container a little narrower than the viewport.
-    stacked = window.innerWidth <= STACK_BREAKPOINT;
+    stacked = COMPACT_LAYOUT.matches;
 
     camDistance = fitDistance(camera.aspect, stacked ? 0.5 : Math.max(SCENE_CENTER_HERO, SCENE_CENTER_ABOUT));
     applyDescent();
@@ -1026,7 +1027,7 @@ export async function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000
 
       // Label hit test against last frame's projected positions. One frame of
       // lag is imperceptible, and it means no DOM reads inside the loop.
-      const onLabel = satellites.find(
+      const onLabel = !stacked && satellites.find(
         (s) =>
           s.labelVisible &&
           Math.abs(pointerLocal.x - s.sx) <= s.half.w &&
@@ -1063,6 +1064,9 @@ export async function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000
     // forces a reflow every frame. resize() already caches the same numbers —
     // the same rule the label widths follow.
     satellites.forEach((sat) => {
+      // Compact layouts use a normal-flow link grid below the canvas.
+      // It cannot collide with the moving models or neighbouring labels.
+      if (stacked) { sat.labelVisible = false; return; }
       // Projected in place. tmpVec exists to avoid allocating, and cloning it
       // here threw away the point of it — four Vector3s a frame, for ever.
       sat.mesh.getWorldPosition(tmpVec).project(camera);
@@ -1127,6 +1131,9 @@ export async function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000
     window.addEventListener("resize", syncLoop);
   }
   syncLoop();
+  if ("ResizeObserver" in window) {
+    new ResizeObserver(() => { resize(); if (REDUCED) syncLoop(); }).observe(canvas);
+  }
 
   return { scene, camera, renderer, controls };
 }

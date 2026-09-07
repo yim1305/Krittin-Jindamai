@@ -102,6 +102,7 @@ const GREEN = 0xa0ca92;
 
 const DEG = Math.PI / 180;
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const COMPACT_LAYOUT = window.matchMedia("(max-width: 1239px), (hover: none) and (max-width: 1400px)");
 
 // Scales every channel of a packed 0xRRGGBB colour. Used to darken an accent
 // without reaching for opacity, which would blend it into the backdrop and
@@ -228,6 +229,13 @@ const LAYOUTS = [
   // is not overlaid here at all — it flows under the canvas. Moon-limited too:
   // 201px vs 50px at 0.15 clearance.
   { min: 0, fw: 2.2, fh: 4.0, fit: 1.52, earth: [0.32, 1.0], moon: [0.62, 0.12], cmg: [0.475, 0.455] },
+];
+
+// Compact scenes have no overlaid index or labels. Keep both complete globes
+// inside their own stage, with room between the spacecraft and surface models.
+const COMPACT_LAYOUTS = [
+  { min: 1.05, fw: 5.6, fh: 4.0, fit: 1.20, earth: [0.28, 0.68], moon: [0.74, 0.29], cmg: [0.4, 0.35] },
+  { min: 0, fw: 3.4, fh: 6.0, fit: 1.22, earth: [0.42, 0.75], moon: [0.60, 0.20], cmg: [0.22, 0.45] },
 ];
 
 // --------------------------------------------------------------------------
@@ -2021,7 +2029,7 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // media query in style.css) — inline left/right/top from JS would win over
   // that (inline always beats a stylesheet rule) and break it, so the
   // per-model positioning below is skipped entirely at this width.
-  const INFO_MOBILE_MQ = window.matchMedia("(max-width: 900px)");
+  const INFO_MOBILE_MQ = COMPACT_LAYOUT;
 
   function updateInfoPanel() {
     if (!infoPanel) return;
@@ -2097,6 +2105,7 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
   });
   canvas.addEventListener("pointerleave", () => {
     pointerInside = false;
+    if (lastPointerType === "touch" && touchOpened) { pointerMoved = false; return; }
     pointerMoved = true;
   });
 
@@ -2166,6 +2175,8 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
   let domHover = null;
 
   function setDomHover(project) {
+    // A touch link should navigate without inserting a preview above itself.
+    if (COMPACT_LAYOUT.matches) return;
     if (domHover === project) return;
     domHover = project;
     applyHoverState();
@@ -2276,7 +2287,8 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
   }
 
   function layoutFor(aspect) {
-    return LAYOUTS.find((l) => aspect >= l.min) || LAYOUTS[LAYOUTS.length - 1];
+    const layouts = COMPACT_LAYOUT.matches ? COMPACT_LAYOUTS : LAYOUTS;
+    return layouts.find((l) => aspect >= l.min) || layouts[layouts.length - 1];
   }
 
   // Exactly one fifth of the Moon's diameter, expressed as a frame fraction.
@@ -2617,7 +2629,7 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
   }
 
   function updateLabelPositions() {
-    if (!labelLayer) return;
+    if (!labelLayer || COMPACT_LAYOUT.matches) return;
     // Fractions of the canvas, not fixed pixels: the composition rescales
     // with the canvas, so a fixed-px offset that clears Earth's limb on a
     // laptop lands back on the ocean on a large display. The width term caps
@@ -2774,6 +2786,7 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
     // stale until re-copied. Only once the arrival has landed — mid-arrival
     // the next frame is about to place everything anyway.
     if (introDone) applySettled();
+    updateInfoPanel();
     render();
   });
 

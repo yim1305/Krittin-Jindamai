@@ -23,7 +23,48 @@ const LOW_POWER = Boolean(
   navigator.connection?.saveData
 );
 document.documentElement.classList.toggle("low-power", LOW_POWER);
-const NAV_H = 64;
+let NAV_H = 64;
+const COMPACT_LAYOUT = window.matchMedia("(max-width: 1239px), (hover: none) and (max-width: 1400px)");
+
+function initResponsiveLayout() {
+  const nav = document.querySelector(".topnav");
+  const scene = document.getElementById("hero-scene");
+  const sceneHome = scene?.parentElement;
+  const sceneNext = scene?.nextSibling;
+  const heroSlot = document.querySelector(".hero-right");
+  const info = document.getElementById("proj-info");
+  const infoHome = info?.parentElement;
+  const infoNext = info?.nextSibling;
+  const field = document.querySelector(".proj-field");
+  const projectScene = document.querySelector(".proj-scene");
+
+  function sync() {
+    if (nav) NAV_H = nav.offsetHeight;
+    if (scene && heroSlot) {
+      if (COMPACT_LAYOUT.matches) {
+        if (scene.parentElement !== heroSlot) heroSlot.appendChild(scene);
+      } else if (scene.parentElement !== sceneHome) {
+        sceneHome.insertBefore(scene, sceneNext);
+      }
+    }
+    if (info && field && projectScene) {
+      if (COMPACT_LAYOUT.matches) {
+        if (info.parentElement !== field) field.insertBefore(info, projectScene.nextSibling);
+      } else if (info.parentElement !== infoHome) {
+        infoHome.insertBefore(info, infoNext);
+      }
+    }
+  }
+  sync();
+  // Register before scene resizing/descent measurements, so they read the
+  // new container after an orientation or breakpoint change.
+  window.addEventListener("resize", sync);
+  if (COMPACT_LAYOUT.addEventListener) COMPACT_LAYOUT.addEventListener("change", sync);
+  else COMPACT_LAYOUT.addListener(sync);
+  if (nav && "ResizeObserver" in window) {
+    new ResizeObserver(() => { NAV_H = nav.offsetHeight; }).observe(nav);
+  }
+}
 
 // --------------------------------------------------------------------------
 // Eased scrolling. Exposed on window so the ES-module hero scene can call it
@@ -176,7 +217,7 @@ function initIndexTyping() {
     if (row.program) row.program.classList.remove("is-pending");
   }
 
-  if (REDUCED) {
+  if (REDUCED || COMPACT_LAYOUT.matches) {
     rows.forEach(finish);
     rows[rows.length - 1].title.appendChild(cursor);
     return;
@@ -354,7 +395,6 @@ function initNav() {
 // It also publishes `--sky-color`, which fades the nebula's colour out over the
 // hero, so every section past it is plain black and white stars.
 // --------------------------------------------------------------------------
-const STACK_BREAKPOINT = 900;
 
 // How much of the nebula's colour Projects gets back. Deliberately under the
 // hero's 1: the hero is still the most coloured piece of sky on the page, and
@@ -424,7 +464,7 @@ function initDescent() {
   function measure() {
     // Below the breakpoint, and under reduced motion, the scene is boxed back
     // into the hero by style.css and there is nothing to descend through.
-    active = !REDUCED && window.innerWidth > STACK_BREAKPOINT;
+    active = !REDUCED && !COMPACT_LAYOUT.matches;
     heroH = hero.offsetHeight;
 
     // Where the sticky scene unpins: the document position of .descent's
@@ -1018,6 +1058,7 @@ window.addEventListener("pageshow", (e) => {
 initPageTransitions();
 
 function boot() {
+  initResponsiveLayout();
   const syncVisibility = () => document.documentElement.classList.toggle("page-hidden", document.hidden);
   document.addEventListener("visibilitychange", syncVisibility);
   syncVisibility();

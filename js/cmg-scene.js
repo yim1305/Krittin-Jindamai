@@ -36,6 +36,7 @@ import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { createEarthModel } from "./orbit-scene.js?v=20260907a";
 
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const COMPACT_LAYOUT = window.matchMedia("(max-width: 1239px), (hover: none) and (max-width: 1400px)");
 
 // Straight from the design tokens in css/style.css, same subset
 // js/system-scene.js keeps — this file is too small to import across
@@ -170,6 +171,35 @@ const CHART_MARGIN = { l: 68, r: 20, t: 14, b: 30 };
 let chartId = 0;
 
 function buildChart(container, t, seriesArrays, title, colors = CHART_COLORS) {
+  let width = 0;
+  let simTime = 0;
+  let zoom = 0;
+  let draw = () => {};
+  let timer = null;
+  function rebuild() {
+    const nextWidth = Math.max(320, Math.min(CHART_W, Math.round(container.clientWidth || CHART_W)));
+    if (nextWidth === width) return;
+    width = nextWidth;
+    container.replaceChildren();
+    draw = buildChartAtWidth(container, t, seriesArrays, title, colors, width);
+    draw(simTime, zoom);
+  }
+  rebuild();
+  if ("ResizeObserver" in window) {
+    new ResizeObserver(() => {
+      clearTimeout(timer);
+      // Rebuild only after width settles, not for every frame of a resize.
+      timer = setTimeout(rebuild, 160);
+    }).observe(container);
+  }
+  return (time, nextZoom = 0) => {
+    simTime = time;
+    zoom = nextZoom;
+    draw(time, nextZoom);
+  };
+}
+
+function buildChartAtWidth(container, t, seriesArrays, title, colors, CHART_W) {
   const tMax = t[t.length - 1];
   const plotW = CHART_W - CHART_MARGIN.l - CHART_MARGIN.r;
   const plotH = CHART_H - CHART_MARGIN.t - CHART_MARGIN.b;
@@ -471,10 +501,15 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
   orbitScene.add(positionReticle);
   // Oblique perspective exposes depth and front/back occlusion. Dragging
   // changes only the observer's view, never the simulated coordinates.
-  const firstDirection = orbitPoints[0].clone().normalize();
-  const planeSample = orbitPoints.find((point) =>
-    new THREE.Vector3().crossVectors(firstDirection, point.clone().normalize()).length() > 0.2);
-  const orbitNormal = new THREE.Vector3().crossVectors(firstDirection, planeSample || orbitPoints[1]).normalize();
+  const firstDirection = new THREE.Vector3().fromArray(orbitPositions, 0).normalize();
+  const planeSample = new THREE.Vector3();
+  const orbitNormal = new THREE.Vector3();
+  for (let i = 1; i < t.length; i++) {
+    planeSample.fromArray(orbitPositions, i * 3).normalize();
+    orbitNormal.crossVectors(firstDirection, planeSample);
+    if (orbitNormal.lengthSq() > 0.04) break;
+  }
+  orbitNormal.normalize();
   orbitCamera.position.copy(orbitNormal).multiplyScalar(3).addScaledVector(firstDirection, 4);
   orbitCamera.lookAt(0, 0, 0);
   const orbitControls = new OrbitControls(orbitCamera, canvas.parentElement.querySelector(".cmg-orbit-controls"));
@@ -579,7 +614,8 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
     canvas.parentElement.classList.toggle("cmg-animation--stacked", stacked);
     const h = canvas.clientHeight;
     if (!w || !h) return;
-    const contentH = h - 110;
+    const hudSpace = COMPACT_LAYOUT.matches ? 0 : 110;
+    const contentH = h - hudSpace;
     const panelH = stacked ? contentH / 2 : contentH;
     const viewH = panelH - 56;
     const orbitW = stacked ? w : Math.floor(w * 0.60);
@@ -600,7 +636,7 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
     // of Earth in the right-hand rail.
     views = [
       { scene, camera, x: stacked ? 0 : orbitW, y: stacked ? h - panelH : h - panelH, w: attitudeW, h: viewH },
-      { scene: orbitScene, camera: orbitCamera, x: 0, y: stacked ? 110 : h - panelH, w: orbitW, h: viewH },
+      { scene: orbitScene, camera: orbitCamera, x: 0, y: stacked ? hudSpace : h - panelH, w: orbitW, h: viewH },
     ];
     renderer.setPixelRatio(pixelRatioFor(w, h));
     renderer.setSize(w, h, false);

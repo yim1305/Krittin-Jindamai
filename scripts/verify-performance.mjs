@@ -253,3 +253,143 @@ test("all site scripts parse and changed assets resolve with current cache versi
     }
   }
 });
+
+test("compact layout moves existing scenes below text and restores desktop order", async () => {
+  const main = await readFile(new URL("../js/main.js", import.meta.url), "utf8");
+  const start = main.indexOf("function initResponsiveLayout()");
+  const code = main.slice(start, main.indexOf("// --------------------------------------------------------------------------", start));
+  class Element {
+    children = [];
+    parentElement = null;
+    get nextSibling() {
+      return this.parentElement?.children[this.parentElement.children.indexOf(this) + 1] || null;
+    }
+    appendChild(child) { this.insertBefore(child, null); }
+    insertBefore(child, next) {
+      if (child.parentElement) child.parentElement.children.splice(child.parentElement.children.indexOf(child), 1);
+      const index = next ? this.children.indexOf(next) : this.children.length;
+      assert.ok(index >= 0);
+      this.children.splice(index, 0, child);
+      child.parentElement = this;
+    }
+  }
+  const [scene, sceneHome, sceneNext, heroSlot, info, projectScene, infoNext, field, index] =
+    Array.from({ length: 9 }, () => new Element());
+  sceneHome.appendChild(scene); sceneHome.appendChild(sceneNext);
+  projectScene.appendChild(info); projectScene.appendChild(infoNext);
+  field.appendChild(projectScene); field.appendChild(index);
+  const nav = { offsetHeight: 92 };
+  const selectors = { ".topnav": nav, ".hero-right": heroSlot, ".proj-field": field, ".proj-scene": projectScene };
+  const events = {};
+  const compact = { matches: true, addEventListener: (name, callback) => { events.change = callback; } };
+  const context = {
+    document: { querySelector: (selector) => selectors[selector], getElementById: (id) => id === "hero-scene" ? scene : info },
+    COMPACT_LAYOUT: compact,
+    window: { addEventListener: (name, callback) => { events[name] = callback; } },
+  };
+  runInNewContext(`let NAV_H = 64; ${code}; initResponsiveLayout(); globalThis.navHeight = () => NAV_H;`, context);
+  for (let i = 0; i < 3; i++) {
+    assert.equal(scene.parentElement, heroSlot);
+    assert.deepEqual(field.children, [projectScene, info, index]);
+    assert.equal(context.navHeight(), 92);
+    compact.matches = false; nav.offsetHeight = 64; events.resize();
+    assert.deepEqual(sceneHome.children, [scene, sceneNext]);
+    assert.deepEqual(projectScene.children, [info, infoNext]);
+    assert.equal(context.navHeight(), 64);
+    compact.matches = true; nav.offsetHeight = 92; events.change();
+  }
+});
+
+test("compact project framing contains both complete planets from 320px phones to iPad landscape", async () => {
+  const system = await readFile(new URL("../js/system-scene.js", import.meta.url), "utf8");
+  const literal = system.match(/const COMPACT_LAYOUTS = (\[[\s\S]*?\n\]);/)[1];
+  const layouts = runInNewContext(literal);
+  const radii = [1, 0.8];
+  const tan = Math.tan(22 * Math.PI / 360);
+  for (const viewport of [320, 360, 375, 390, 414, 600, 768, 820, 834, 1024, 1194, 1366]) {
+    const width = viewport - (viewport <= 600 ? 40 : 48);
+    const height = Math.max(420, Math.min(660, viewport));
+    const aspect = width / height;
+    const layout = layouts.find((item) => aspect >= item.min);
+    const visibleH = Math.max(layout.fh, layout.fw / aspect);
+    const distance = visibleH * layout.fit / (2 * tan);
+    for (const [i, body] of [layout.earth, layout.moon].entries()) {
+      const shift = i ? ((0.8 * 2) / layout.fw) / 5 : 0;
+      const x = (body[0] + shift - 0.5) * layout.fw;
+      const y = (0.5 - body[1]) * layout.fh;
+      const radius = radii[i] * 1.075;
+      // Conservative sphere bounds use the nearest depth for every vertex.
+      assert.ok((Math.abs(x) + radius) / ((distance - radius) * tan * aspect) < 1, `${viewport}px horizontal body ${i}`);
+      assert.ok((Math.abs(y) + radius) / ((distance - radius) * tan) < 1, `${viewport}px vertical body ${i}`);
+    }
+  }
+});
+
+test("HCMG camera setup runs against its exported trajectory without stale references", async () => {
+  const { loadNumericCsv } = await load();
+  const csv = await readFile(new URL("../assets/data/sim_data_mtq_on.csv", import.meta.url), "utf8");
+  install({ fetch: async () => ({ ok: true, text: async () => csv }) });
+  const data = await loadNumericCsv("simulation.csv");
+  for (const axis of ["rx", "ry", "rz"]) data[axis] = data[axis].map((n) => n / 1000);
+  class Vector3 {
+    x = 0; y = 0; z = 0;
+    fromArray(a, i) { [this.x, this.y, this.z] = [a[i], a[i + 1], a[i + 2]]; return this; }
+    copy(v) { [this.x, this.y, this.z] = [v.x, v.y, v.z]; return this; }
+    lengthSq() { return this.x ** 2 + this.y ** 2 + this.z ** 2; }
+    normalize() { return this.multiplyScalar(1 / (Math.sqrt(this.lengthSq()) || 1)); }
+    multiplyScalar(k) { this.x *= k; this.y *= k; this.z *= k; return this; }
+    addScaledVector(v, k) { this.x += v.x * k; this.y += v.y * k; this.z += v.z * k; return this; }
+    crossVectors(a, b) {
+      [this.x, this.y, this.z] = [a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x];
+      return this;
+    }
+  }
+  const cmg = await readFile(new URL("../js/cmg-scene.js", import.meta.url), "utf8");
+  const positions = cmg.slice(cmg.indexOf("  const orbitPositions ="), cmg.indexOf("  const trajectoryGeometry ="));
+  const camera = cmg.slice(cmg.indexOf("  const firstDirection ="), cmg.indexOf("  const orbitControls ="));
+  const context = { data, t: data.t, EARTH_RADIUS_KM: 6371, THREE: { Vector3 }, orbitCamera: { position: new Vector3(), lookAt() {} } };
+  runInNewContext(`${positions}\n${camera}\nglobalThis.result = { orbitPositions, orbitExtent, firstDirection, orbitNormal };`, context);
+  const { orbitPositions, orbitExtent, firstDirection, orbitNormal } = context.result;
+  assert.equal(orbitPositions.length, data.t.length * 3);
+  assert.ok(orbitPositions.every(Number.isFinite));
+  assert.ok(orbitExtent > 1);
+  assert.ok(Math.abs(orbitNormal.lengthSq() - 1) < 1e-10);
+  const dot = firstDirection.x * orbitNormal.x + firstDirection.y * orbitNormal.y + firstDirection.z * orbitNormal.z;
+  assert.ok(Math.abs(dot) < 1e-10);
+  assert.ok(Math.abs(context.orbitCamera.position.lengthSq() - 25) < 1e-8);
+});
+
+test("HCMG chart resizing retains playback and makes phone axes readable", async () => {
+  const cmg = await readFile(new URL("../js/cmg-scene.js", import.meta.url), "utf8");
+  const code = cmg.slice(cmg.indexOf("function buildChart("), cmg.indexOf("// Keep the original slow rate"));
+  class Node {
+    children = []; attributes = {}; style = {}; clientWidth = 600;
+    appendChild(node) { this.children.push(node); return node; }
+    replaceChildren() { this.children = []; }
+    setAttribute(key, value) { this.attributes[key] = value; }
+  }
+  const target = new Node();
+  let resize;
+  let pending;
+  const context = {
+    document: { createElementNS: () => new Node() },
+    window: { ResizeObserver: true },
+    ResizeObserver: class { constructor(callback) { resize = callback; } observe() {} },
+    setTimeout: (callback) => { pending = callback; }, clearTimeout() {},
+    CHART_W: 600, CHART_H: 300, SVG_NS: "svg", CHART_COLORS: ["white"],
+    CHART_MARGIN: { l: 68, r: 20, t: 14, b: 30 }, T_SPLIT_SIM: 100,
+    findFrame: () => ({ i1: 1 }), clamp: (n, lo, hi) => Math.max(lo, Math.min(hi, n)),
+    target,
+  };
+  runInNewContext(`let chartId = 0; ${code}; globalThis.draw = buildChart(target, [0, 100, 1000], [[0, 20, 100]], "test");`, context);
+  context.draw(50, 1);
+  assert.equal(target.children[0].attributes.viewBox, "0 0 600 300");
+  target.clientWidth = 280;
+  resize(); pending();
+  assert.equal(target.children.length, 1);
+  assert.equal(target.children[0].attributes.viewBox, "0 0 320 300");
+  const nodes = (node) => [node, ...node.children.flatMap(nodes)];
+  const clip = nodes(target).find((node) => node.attributes.height === 256);
+  assert.ok(Math.abs(clip.attributes.width - (320 - 68 - 20) * 0.05) < 1e-8);
+  assert.ok(12 * 280 / 320 >= 10, "axis text remains at least 10 screen pixels at 320px viewport");
+});
