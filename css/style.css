@@ -531,7 +531,7 @@ section{ position:relative; z-index:1; }
 /* Portrait | copy + education | vertical tool marks. The copy sits in the
    middle, above the horizon the descent lands on. */
 .about-grid{
-  display:grid; grid-template-columns:380px minmax(0,1fr) 250px;
+  display:grid; grid-template-columns:clamp(280px,24vw,380px) minmax(0,1fr) 250px;
   gap:56px; align-items:start;
 }
 
@@ -553,7 +553,10 @@ section{ position:relative; z-index:1; }
    independent rather than depending on how wide Krittin's screen happens to
    be. UNVERIFIED — check it reads as centred rather than cramped against the
    edges. */
-.about-plate{ display:flex; flex-direction:column; margin-left:-24px; }
+.about-plate{
+  display:flex; flex-direction:column; width:100%; max-width:380px;
+  margin-left:-24px;
+}
 .about-photo{
   /* Matches krittin-portrait.jpg's own 548x900 exactly, so `cover` below has
      nothing to crop — the whole rocket stays in frame at any column width. */
@@ -1991,7 +1994,12 @@ footer{
   .about, .experience, .projects{ min-height:0; padding:56px 0; }
   .section-inner, .projects .section-inner{ padding-left:24px; padding-right:24px; }
   .about-grid{ grid-template-columns:minmax(0,1fr); gap:32px; }
-  .about-plate{ width:min(100%,320px); max-width:none; margin:0 auto; }
+  /* Scale with the actual viewport instead of jumping to one fixed phone/
+     tablet width. The outer min() also guarantees the portrait fits inside
+     the content gutter on unusually narrow screens. */
+  .about-plate{
+    width:min(100%, clamp(220px,72vw,360px)); max-width:none; margin:0 auto;
+  }
   .about-text{ max-width:none; font-size:16px; line-height:1.7; }
   .about-edu-row{ flex-direction:row; gap:24px; }
   .about-skills{ margin:0; min-width:0; }

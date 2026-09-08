@@ -104,6 +104,14 @@ const DEG = Math.PI / 180;
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const COMPACT_LAYOUT = window.matchMedia("(max-width: 1239px), (hover: none) and (max-width: 1400px)");
 
+// Desktop's exaggerated model scale is intentionally theatrical, but the
+// same silhouettes crowd one another when the whole system is composed into
+// a phone-width stage. Keep the planets unchanged and trim only the project
+// objects on compact screens; this creates real clearance without making the
+// Earth/Moon system feel smaller or changing the desktop artwork.
+const COMPACT_MODEL_SCALE = COMPACT_LAYOUT.matches ? 0.78 : 1;
+const modelScale = (scale) => scale * COMPACT_MODEL_SCALE;
+
 // Scales every channel of a packed 0xRRGGBB colour. Used to darken an accent
 // without reaching for opacity, which would blend it into the backdrop and
 // let the starfield show through instead of just dimming it.
@@ -236,8 +244,11 @@ const LAYOUTS = [
 // Compact scenes have no overlaid index or labels. Keep both complete globes
 // inside their own stage, with room between the spacecraft and surface models.
 const COMPACT_LAYOUTS = [
-  { min: 1.05, fw: 5.6, fh: 4.0, fit: 1.20, earth: [0.28, 0.68], moon: [0.74, 0.29], cmg: [0.4, 0.35] },
-  { min: 0, fw: 3.4, fh: 6.0, fit: 1.22, earth: [0.42, 0.75], moon: [0.60, 0.20], cmg: [0.22, 0.45] },
+  // satA is an explicit open-sky slot for BDOT. On desktop its position is
+  // derived as the midpoint between the robot and TerraGator; in the compact
+  // composition that midpoint falls on the CMG satellite.
+  { min: 1.05, fw: 5.6, fh: 4.0, fit: 1.20, earth: [0.28, 0.68], moon: [0.74, 0.29], cmg: [0.4, 0.35], satA: [0.14, 0.52] },
+  { min: 0, fw: 3.4, fh: 6.0, fit: 1.22, earth: [0.42, 0.75], moon: [0.60, 0.20], cmg: [0.22, 0.45], satA: [0.08, 0.56] },
 ];
 
 // --------------------------------------------------------------------------
@@ -1649,7 +1660,7 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
   const robotFrom = robotHome.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), -20 * DEG);
 
   const robot = buildTurtlebot();
-  robot.scale.setScalar(ROBOT_SCALE);
+  robot.scale.setScalar(modelScale(ROBOT_SCALE));
   const robotAnchor = new THREE.Object3D();
   robotAnchor.add(robot);
   earthSpin.add(robotAnchor);
@@ -1665,7 +1676,7 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
     // Slerp along the surface rather than through it: normalising the lerp of
     // two unit vectors keeps the robot on the sphere the whole way in.
     tmpA.copy(robotFrom).lerp(robotHome, clamp(u, 0, 1)).normalize();
-    robotAnchor.position.copy(tmpA).multiplyScalar(EARTH_R + ROBOT_DROP * ROBOT_SCALE);
+    robotAnchor.position.copy(tmpA).multiplyScalar(EARTH_R + ROBOT_DROP * modelScale(ROBOT_SCALE));
     robotAnchor.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tmpA);
     // Heading: along the direction of travel, flattened into the local surface
     // plane and expressed in the anchor's frame, so the robot faces the way it
@@ -1680,7 +1691,7 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // is a plain frame position (`cmg` in LAYOUTS), now the exact midpoint of
   // the two bodies.
   const cmgSat = buildSatellite();
-  cmgSat.scale.setScalar(CMG_SCALE);
+  cmgSat.scale.setScalar(modelScale(CMG_SCALE));
   // Attitude, built from an EXPLICIT BASIS rather than setFromUnitVectors,
   // which returns the minimal rotation and so pins one axis while leaving the
   // roll about it arbitrary. The solar wings lie in the local XY plane and
@@ -1722,12 +1733,12 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // and right. They are decorative scene elements, so they do not add project
   // labels, hover targets, or navigation entries.
   const decorativeSatA = buildSatellite(SATELLITE_TINT_A);
-  decorativeSatA.scale.setScalar(DECORATIVE_SAT_SCALE_A);
+  decorativeSatA.scale.setScalar(modelScale(DECORATIVE_SAT_SCALE_A));
   decorativeSatA.quaternion.copy(cmgSat.quaternion);
   decorativeSatA.rotateZ(-18 * DEG);
 
   const decorativeSatB = buildSatellite(SATELLITE_TINT_B);
-  decorativeSatB.scale.setScalar(DECORATIVE_SAT_SCALE_B);
+  decorativeSatB.scale.setScalar(modelScale(DECORATIVE_SAT_SCALE_B));
   decorativeSatB.quaternion.copy(cmgSat.quaternion);
   decorativeSatB.rotateZ(24 * DEG);
 
@@ -1755,7 +1766,7 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // against WRAP_R_MOON's new radius above and nudge further if the path
   // still crosses it.
   const crane = buildSkyCrane();
-  crane.scale.setScalar(CRANE_SCALE);
+  crane.scale.setScalar(modelScale(CRANE_SCALE));
   const craneAnchor = anchorOnSurface(surfaceNormal(6, 58), MOON_R, 0.13, crane);
   moonSpin.add(craneAnchor);
 
@@ -1802,9 +1813,9 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // Named ...Rocket rather than plainly: `navigator` alone would shadow
   // window.navigator for the whole of this function.
   const terragatorRocket = buildTerraGatorShuttle();
-  terragatorRocket.scale.setScalar(TERRAGATOR_SCALE);
+  terragatorRocket.scale.setScalar(modelScale(TERRAGATOR_SCALE));
   const communigatorRocket = buildCommunigatorSLS();
-  communigatorRocket.scale.setScalar(COMMUNIGATOR_SCALE);
+  communigatorRocket.scale.setScalar(modelScale(COMMUNIGATOR_SCALE));
   const flightPath = new THREE.Group();
 
   scene.add(earthGroup, moonGroup, flightPath, terragatorRocket, communigatorRocket);
@@ -1974,14 +1985,14 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // The baseScale here MUST match what each model was actually built at above
   // — registerModel's hover swell is `baseScale * (1 + 0.34k)`, so a stale
   // value silently resizes the model the first time it is hovered.
-  registerModel(terragatorRocket, terragatorRocket, PROJECTS[0].href, TERRAGATOR_SCALE);
-  registerModel(communigatorRocket, communigatorRocket, PROJECTS[1].href, COMMUNIGATOR_SCALE);
-  registerModel(cmgSat, cmgSat, PROJECTS[2].href, CMG_SCALE);
-  registerModel(robot, robot, PROJECTS[3].href, ROBOT_SCALE);
-  registerModel(crane, crane, PROJECTS[4].href, CRANE_SCALE);
+  registerModel(terragatorRocket, terragatorRocket, PROJECTS[0].href, modelScale(TERRAGATOR_SCALE));
+  registerModel(communigatorRocket, communigatorRocket, PROJECTS[1].href, modelScale(COMMUNIGATOR_SCALE));
+  registerModel(cmgSat, cmgSat, PROJECTS[2].href, modelScale(CMG_SCALE));
+  registerModel(robot, robot, PROJECTS[3].href, modelScale(ROBOT_SCALE));
+  registerModel(crane, crane, PROJECTS[4].href, modelScale(CRANE_SCALE));
   registerLine(hopLine, PROJECTS[5].href, HOP_WIDTH, HOP_OPACITY);
-  registerModel(decorativeSatA, decorativeSatA, PROJECTS[6].href, DECORATIVE_SAT_SCALE_A);
-  registerModel(decorativeSatB, decorativeSatB, PROJECTS[7].href, DECORATIVE_SAT_SCALE_B);
+  registerModel(decorativeSatA, decorativeSatA, PROJECTS[6].href, modelScale(DECORATIVE_SAT_SCALE_A));
+  registerModel(decorativeSatB, decorativeSatB, PROJECTS[7].href, modelScale(DECORATIVE_SAT_SCALE_B));
 
   // The object each label tracks, in the same order as PROJECTS. The two
   // surface-mounted ones track their ANCHOR rather than the model itself, so
@@ -2784,14 +2795,20 @@ export async function initSystemScene({ canvas, labelLayer, infoPanel }) {
     // the arrival animation cannot make these relationships drift.
     robot.getWorldPosition(cbfModelWorld).project(camera);
     terragatorNdc.copy(terragatorRocket.position).project(camera);
-    decorativeSatA.position
-      .set(
-        (cbfModelWorld.x + terragatorNdc.x) * 0.5,
-        (cbfModelWorld.y + terragatorNdc.y) * 0.5,
-        (cbfModelWorld.z + terragatorNdc.z) * 0.5
-      )
-      .unproject(camera)
-      .addScaledVector(CMG_ENTRY, 0.65 * (1 - satProgress));
+    if (layout.satA) {
+      decorativeSatA.position
+        .copy(framePos(layout, layout.satA[0], layout.satA[1]))
+        .addScaledVector(CMG_ENTRY, 0.65 * (1 - satProgress));
+    } else {
+      decorativeSatA.position
+        .set(
+          (cbfModelWorld.x + terragatorNdc.x) * 0.5,
+          (cbfModelWorld.y + terragatorNdc.y) * 0.5,
+          (cbfModelWorld.z + terragatorNdc.z) * 0.5
+        )
+        .unproject(camera)
+        .addScaledVector(CMG_ENTRY, 0.65 * (1 - satProgress));
+    }
     hopMarker.getWorldPosition(hopperWorld).project(camera);
     decorativeSatB.position
       .set(

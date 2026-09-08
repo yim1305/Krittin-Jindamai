@@ -18,7 +18,7 @@
        whenever style.css, main.js, or a scene module changes, in every HTML
        file that references it — see the matching tags in css/style.css and
        js/main.js and every projects/*.html. -->
-  <link rel="stylesheet" href="css/style.css?v=20260907f">
+  <link rel="stylesheet" href="css/style.css?v=20260908a">
 
   <!-- In <head> and render-blocking, deliberately. `pagereveal` fires before
        the document's first render, and on a page this size the browser can
@@ -734,7 +734,7 @@
         try {
           // A real dynamic import: the 135 KB scene and its Three.js add-ons
           // are neither downloaded nor parsed until Projects approaches.
-          const { initSystemScene } = await import("./js/system-scene.js?v=20260907j");
+          const { initSystemScene } = await import("./js/system-scene.js?v=20260908a");
           await initSystemScene({
             canvas: systemCanvas,
             labelLayer: document.getElementById("system-labels"),
