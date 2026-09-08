@@ -24,7 +24,7 @@ js/cbf-scene.js         real Gazebo CBF run, ros-research.html only (ES module)
 js/moon-scene.js        SUPERSEDED, imported by nothing — kept as a revert path
 projects/_template.html duplicate for a build/design project (timeframe/role/tools)
 projects/_template-research.html duplicate for a research entry (PI/dept/duration)
-scripts/export-cbf-run.ps1  derives assets/data/cbf-run.csv from the raw capture
+scripts/export-cbf-run.ps1  derives assets/data/cbf-run2.csv from robot_odom2.csv
 assets/                 images/ (nebula-backdrop.webp, about media), papers/, data/
 ```
 
@@ -293,11 +293,11 @@ module header and `assets/data/README.md`; the rules that bite:
 
 - **Playback covers 0-80 s at 2x** (40 s plus a 1.2 s end hold), per
   Krittin's request. `scripts/export-cbf-run.ps1` retains every source row in
-  that window, unwraps yaw, and interpolates an exact 80 s endpoint. The three
-  reset transitions are visually smoothed over 1.5 s, so the robot and trail
-  remain continuous. Source timestamps and all poses outside those bridges
-  remain intact; bridge poses are intentionally derived. **Reverse driving is
-  real**; preserve the recorded heading.
+  that window, unwraps yaw, and interpolates an exact 80 s endpoint. The
+  replacement capture has no reset transitions in this window, so every pose
+  is retained directly. The exporter still supports 1.5 s reset bridges for a
+  future discontinuous capture. **Reverse driving is real**; preserve the
+  recorded heading.
 - **The HUD reports signed distance to the safe set**; marker brightness
   indicates proximity, not QP activation.
 - **The camera is solved, not placed** — `fitCamera()` contains the 5.5 × 13.5 m

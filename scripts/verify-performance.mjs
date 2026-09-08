@@ -151,7 +151,7 @@ test("sustained slow frames reduce quality, while isolated stalls do not", async
 
 test("chunked CSV parsing preserves every exported simulation value", async () => {
   const { loadNumericCsv } = await load();
-  for (const name of ["sim_data_mtq_on.csv", "sim_data_mtq_off.csv", "cbf-run.csv", "spiral_geometry.csv", "walls.csv"]) {
+  for (const name of ["sim_data_mtq_on.csv", "sim_data_mtq_off.csv", "cbf-run2.csv", "spiral_geometry2.csv", "walls2.csv"]) {
     const text = await readFile(new URL(`../assets/data/${name}`, import.meta.url), "utf8");
     install({ fetch: async () => ({ ok: true, text: async () => text }) });
     const actual = await loadNumericCsv(name);

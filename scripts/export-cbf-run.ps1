@@ -1,12 +1,12 @@
 # Export every source sample in the requested 0-80 s window.
-# The recording contains a few discontinuous pose resets. The export replaces
-# each reset with a 1.5 s smooth bridge, then returns to the recorded pose.
-# This keeps playback continuous while preserving all timestamps and all
-# unmodified source poses outside each bridge.
+# If a recording contains discontinuous pose resets, the export replaces each
+# reset with a 1.5 s smooth bridge, then returns to the recorded pose. This
+# keeps playback continuous while preserving all timestamps and all unmodified
+# source poses outside each bridge.
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
-$src = Join-Path $root "assets\data\robot_odom.csv"
-$dst = Join-Path $root "assets\data\cbf-run.csv"
+$src = Join-Path $root "assets\data\robot_odom2.csv"
+$dst = Join-Path $root "assets\data\cbf-run2.csv"
 $culture = [System.Globalization.CultureInfo]::InvariantCulture
 $endTime = 80.0
 $bridgeSeconds = 1.5

@@ -60,9 +60,9 @@
     </div>
   </div>
 
-  <!-- Recorded poses from 0-80 s at 2x speed. The exporter smooths the
-       capture's reset transitions for continuous playback. The HUD reports
-       signed distance to the supplied safe set, including crossings.
+  <!-- Recorded poses from 0-80 s at 2x speed. The replacement capture is
+       continuous throughout this window. The HUD reports signed distance to
+       the supplied safe set.
        The two Gazebo stills remain below in the written project description. -->
   <div class="detail-media">
     <div class="detail-media-inner detail-media-inner--transparent cbf-animation">
@@ -122,9 +122,12 @@
         <li><strong>simulation</strong>: TurtleBot3 Burger and lab geometry in Gazebo Harmonic (ROS 2 Humble), with the full tracker → CBF-QP filter → actuation pipeline running as ROS 2 nodes in closed loop</li>
       </ul>
 
-      <!-- Both Gazebo stills live here now that the lead is the animation:
-           the workspace shot first, where the safe set is described, then the
-           trajectory plot. -->
+      <h3>results</h3>
+      <p>The robot remained inside the prescribed safe set throughout the run, without crossing the boundary or colliding with a wall. In the animation, the robot can appear to overlap the wall because its rendered model is enlarged 4&times; for legibility; the barrier calculation still uses the robot's true-scale look-ahead point.</p>
+      <p>Tracking performance degrades once the commanded trajectory pushes beyond the feasible region and the robot settles near the boundary. This is expected: the tracking controller continues requesting motion toward an unsafe reference while the CBF-QP prioritizes safety and rejects that motion. The resulting tracking error is therefore a limitation of the nominal tracking objective near an infeasible path, not a failure of the CBF&mdash;the safety filter is doing exactly what it is designed to do.</p>
+
+      <!-- Both Gazebo stills support the results: the workspace shot first,
+           showing the safe-set boundary, then the measured trajectory plot. -->
       <figure class="detail-figure detail-figure--inset align-left">
         <div class="detail-figure-media"><img loading="lazy" decoding="async" src="../assets/images/projects/cbf-1.png" alt="Gazebo simulation — rectangular safe-set boundary with the robot near its center"></div>
         <figcaption>the lab in Gazebo — safe-set boundary and the robot</figcaption>
@@ -155,12 +158,12 @@
         if (mounted) return;
         mounted = true;
         try {
-          const { initCbfScene } = await import("../js/cbf-scene.js?v=20260907a");
+          const { initCbfScene } = await import("../js/cbf-scene.js?v=20260908a");
           await initCbfScene({
             canvas,
-            runUrl: "../assets/data/cbf-run.csv?v=20260906h",
-            spiralUrl: "../assets/data/spiral_geometry.csv",
-            wallsUrl: "../assets/data/walls.csv",
+            runUrl: "../assets/data/cbf-run2.csv?v=20260908a",
+            spiralUrl: "../assets/data/spiral_geometry2.csv",
+            wallsUrl: "../assets/data/walls2.csv",
             hudEl: document.getElementById("cbf-hud"),
           });
         } catch (error) {

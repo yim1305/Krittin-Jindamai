@@ -4,24 +4,23 @@
 // Krittin recorded a ROS 2 + Gazebo Harmonic run of a TurtleBot3 Burger
 // tracking a reference spiral under a CBF-QP safety filter, and exported it to
 // assets/data/ (see the README there):
-//   robot_odom.csv      the capture, ~28 Hz over 116.4 s: t, x, y, yaw, and
+//   robot_odom2.csv     the capture, ~27 Hz over 113.3 s: t, x, y, yaw, and
 //                       velocity columns the DiffDrive plugin left at zero
-//   spiral_geometry.csv 300 points of the COMMANDED path, which deliberately
+//   spiral_geometry2.csv 300 points of the COMMANDED path, which deliberately
 //                       spirals out past the room — that is what the filter has
 //                       to refuse to follow
-//   walls.csv           the safe rectangle the barrier is built from,
+//   walls2.csv          the safe rectangle the barrier is built from,
 //                       [-2.75, 2.75] x [-6.75, 6.75] m
-//   cbf-run.csv         all samples from 0 to 80 s of the capture, exported
+//   cbf-run2.csv        all samples from 0 to 80 s of the capture, exported
 //                       by scripts/export-cbf-run.ps1 with unwrapped yaw and
 //                       an interpolated endpoint at exactly 80 s.
 //
-// The raw capture contains three abrupt pose resets. The exporter smooths each
-// over 1.5 s, then resumes the recorded trajectory, so this visual playback
-// stays continuous without dropping timestamps or subsequent data.
+// The replacement capture is continuous in this window, so the export retains
+// its recorded poses without needing any reset bridges.
 //
-// The 0.15 m look-ahead point crosses the supplied safe-set boundary in this
-// window. The HUD preserves negative h; marker brightness measures proximity,
-// not QP activation (which is not included in the source CSV).
+// The 0.15 m look-ahead point approaches within about 0.10 m of the supplied
+// safe-set boundary in this window. Marker brightness measures proximity, not
+// QP activation (which is not included in the source CSV).
 //
 // // The camera never moves. It is a fixed instrument view of the whole safe set,
 // tilted enough that the boundary markers and the robot have real height while
