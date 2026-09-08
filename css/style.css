@@ -610,7 +610,7 @@ section{ position:relative; z-index:1; }
 .edu-row:last-child{ margin-bottom:0; }
 .edu-year-gpa{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
 .edu-year-gpa .edu-detail:last-child{ text-align:right; white-space:nowrap; }
-.coursework-short{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.coursework-short{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-bottom:14px; }
 .coursework-short .edu-row{ margin-bottom:0; }
 .edu-inst{ font-family:var(--sans); font-size:14px; font-weight:500; color:var(--bone); }
 /* Brightened from --warm-granite — Krittin: "education and relevant course
@@ -1266,7 +1266,7 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
 }
 .marquee-track{
   display:flex; gap:16px; width:max-content;
-  animation:marquee-scroll 46s linear infinite;
+  animation:marquee-scroll 34s linear infinite;
 }
 .marquee:hover .marquee-track{ animation-play-state:paused; }
 @keyframes marquee-scroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
@@ -1283,7 +1283,7 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
 .marquee-v .marquee-track{
   flex-direction:column; align-items:flex-start;
   width:auto; height:max-content;
-  animation:marquee-scroll-v 64s linear infinite;
+  animation:marquee-scroll-v 44s linear infinite;
 }
 @keyframes marquee-scroll-v{ from{ transform:translateY(-50%); } to{ transform:translateY(0); } }
 .marquee .marquee-track{ animation-play-state:paused; }
@@ -1829,7 +1829,7 @@ footer{
   }
   .marquee-v .marquee-track{
     flex-direction:row; align-items:center; width:max-content; height:auto;
-    animation:marquee-scroll 46s linear infinite;
+    animation:marquee-scroll 34s linear infinite;
   }
   .exp-head{ grid-template-columns:1fr; gap:8px; }
   .exp-meta{ justify-content:flex-start; }
@@ -2010,7 +2010,7 @@ footer{
   .edu-row{ gap:2px; margin-bottom:6px; }
   .edu-inst{ font-size:clamp(11px,1.6vh,13px); }
   .edu-detail{ font-size:clamp(9px,1.25vh,10.5px); }
-  .coursework-short{ gap:8px; }
+  .coursework-short{ gap:8px; margin-bottom:6px; }
   .marquee-v{ height:min(48vh,330px); }
   .skill-tag{ font-size:11px; padding:7px 11px; }
   .skill-ico{ width:17px; height:17px; }
@@ -2050,6 +2050,7 @@ footer{
   .edu-row{ margin-bottom:4px; }
   .edu-inst{ font-size:10.5px; }
   .edu-detail{ font-size:8.5px; }
+  .coursework-short{ margin-bottom:4px; }
   .skill-tag{ font-size:9px; padding:5px 7px; gap:5px; }
   .skill-ico{ width:14px; height:14px; }
 
@@ -2216,7 +2217,7 @@ footer{
   .links-row{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
   .links-row > *{ justify-content:center; padding-left:8px; padding-right:8px; font-size:11px; }
   .about-edu-row{ flex-direction:column; gap:0; }
-  .coursework-short, .facts{ grid-template-columns:minmax(0,1fr); }
+  .facts{ grid-template-columns:minmax(0,1fr); }
   .edu-year-gpa{ flex-wrap:wrap; }
   .exp-meta{ gap:8px 12px; }
   .communigator-top-visuals, .terragator-model-rail, .communigator-model-rail{ grid-template-columns:minmax(0,1fr); }
