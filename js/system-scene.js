@@ -102,7 +102,7 @@ const GREEN = 0xa0ca92;
 
 const DEG = Math.PI / 180;
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const COMPACT_LAYOUT = window.matchMedia("(max-width: 1239px), (hover: none) and (max-width: 1400px)");
+const COMPACT_LAYOUT = window.matchMedia("(max-width: 700px)");
 
 // Desktop's exaggerated model scale is intentionally theatrical, but the
 // same silhouettes crowd one another when the whole system is composed into

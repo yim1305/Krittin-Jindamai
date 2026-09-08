@@ -18,14 +18,14 @@
        whenever style.css, main.js, or a scene module changes, in every HTML
        file that references it — see the matching tags in css/style.css and
        js/main.js and every projects/*.html. -->
-  <link rel="stylesheet" href="css/style.css?v=20260908a">
+  <link rel="stylesheet" href="css/style.css?v=20260908d">
 
   <!-- In <head> and render-blocking, deliberately. `pagereveal` fires before
        the document's first render, and on a page this size the browser can
        paint before an end-of-body script has run — which meant the page
        transition's direction flag and the carried-over backdrop offsets were
        being applied too late to affect the incoming snapshot. -->
-  <script src="js/main.js?v=20260907b"></script>
+  <script src="js/main.js?v=20260908b"></script>
 
   <!-- Import map so orbit-scene.js's "three" / "three/addons/..." specifiers resolve
        to the CDN build — required because OrbitControls.js itself imports the bare
@@ -734,7 +734,7 @@
         try {
           // A real dynamic import: the 135 KB scene and its Three.js add-ons
           // are neither downloaded nor parsed until Projects approaches.
-          const { initSystemScene } = await import("./js/system-scene.js?v=20260908a");
+          const { initSystemScene } = await import("./js/system-scene.js?v=20260908b");
           await initSystemScene({
             canvas: systemCanvas,
             labelLayer: document.getElementById("system-labels"),
@@ -791,7 +791,7 @@
         // follows the active display, so this distinguishes a 90/144/165 Hz
         // laptop panel from a 60 Hz HDMI monitor without browser sniffing.
         const [{ initOrbitScene }, displayFrameMs] = await Promise.all([
-          import("./js/orbit-scene.js?v=20260907a"),
+          import("./js/orbit-scene.js?v=20260908b"),
           measureDisplayFrameMs(),
         ]);
 

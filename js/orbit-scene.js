@@ -40,7 +40,7 @@ const GREEN = 0xa0ca92;
 
 const GLOBE_R = 1.5;
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const COMPACT_LAYOUT = window.matchMedia("(max-width: 1239px), (hover: none) and (max-width: 1400px)");
+const COMPACT_LAYOUT = window.matchMedia("(max-width: 700px)");
 
 // A DPR-only cap is misleading on laptop panels: 1440x900 at DPR 2 asks the
 // integrated GPU to shade 5.2 million pixels every frame, while a larger HDMI
@@ -941,7 +941,7 @@ export async function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000
     applyRenderQuality();
 
     // Keyed off innerWidth, not the container: this has to flip at exactly
-    // the same point as the `max-width: 900px` rule that stacks the hero, and
+    // the same point as the `max-width: 700px` rule that stacks the hero, and
     // a scrollbar makes the container a little narrower than the viewport.
     stacked = COMPACT_LAYOUT.matches;
 

@@ -47,7 +47,9 @@ window.sceneFallback = function sceneFallback(canvas, message) {
 };
 
 let NAV_H = 64;
-const COMPACT_LAYOUT = window.matchMedia("(max-width: 1239px), (hover: none) and (max-width: 1400px)");
+// Only phones use the stacked document structure. Smaller laptops keep the
+// desktop composition and are density-tuned by the short-height CSS query.
+const COMPACT_LAYOUT = window.matchMedia("(max-width: 700px)");
 
 function initResponsiveLayout() {
   const nav = document.querySelector(".topnav");

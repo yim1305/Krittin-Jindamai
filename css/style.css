@@ -515,12 +515,12 @@ section{ position:relative; z-index:1; }
    No border-top: the descent runs one continuous sky from the hero into here,
    and a hairline across it would cut the scene in half.
 
-   Top-weighted rather than centred, because the bottom of the viewport is
+   Centred within the viewport while the bottom of the viewport is still
    spoken for — --horizon-band is the strip the globe's limb sits in, and the
    skills marquee is pushed down to ride just above it. */
 .about{
   min-height:calc(100vh - var(--nav-h));
-  display:flex; flex-direction:column;
+  display:flex; flex-direction:column; justify-content:center;
   padding:56px 0 var(--horizon-band);
 }
 /* Wider than the 1200px the rest of the page uses, so the portrait can sit
@@ -552,10 +552,13 @@ section{ position:relative; z-index:1; }
    photo left, skills right — so the shift is symmetric and viewport-
    independent rather than depending on how wide Krittin's screen happens to
    be. UNVERIFIED — check it reads as centred rather than cramped against the
-   edges. */
+   edges.
+
+   Current alignment supersedes that gutter bleed: the portrait is centred
+   in its responsive column and the biography aligns to its vertical centre. */
 .about-plate{
   display:flex; flex-direction:column; width:100%; max-width:380px;
-  margin-left:-24px;
+  margin-left:0; justify-self:center; align-self:center;
 }
 .about-photo{
   /* Matches krittin-portrait.jpg's own 548x900 exactly, so `cover` below has
@@ -573,7 +576,10 @@ section{ position:relative; z-index:1; }
    as well so the height can be reduced" — it was sitting too far down the
    page. Smaller + wider means fewer wrapped lines per paragraph, so the whole
    bio block loses height even though the copy itself is unchanged. */
-.about-text{ font-size:14px; line-height:1.6; color:var(--pale-stone); max-width:760px; }
+.about-text{
+  align-self:center; justify-self:center;
+  font-size:14px; line-height:1.6; color:var(--pale-stone); max-width:760px;
+}
 .about-text p{ margin:0 0 16px; }
 .about-text .lead{ color:var(--bone); font-size:16px; margin-bottom:24px; }
 .about-text .lead.about-intro{ font-size:14px; }
@@ -614,7 +620,7 @@ section{ position:relative; z-index:1; }
    needs 61% of that viewport plus a small closing gap—not another full page.
    On the stacked layout the canvas does not spill, so only the gap remains. */
 section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
-@media (min-width:901px){
+@media (min-width:701px){
   section.awards{ min-height:calc(61vh + 8px); }
 }
 
@@ -731,10 +737,10 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
    for a shorter box instead of pushing the page down.
    The padding is tighter than the shared value for the same reason: it is all
    room the scene would otherwise lose.
-   Desktop only. The stacked layout below 900px is a scrolling column by
+   Desktop only. The stacked layout at 700px and below is a scrolling column by
    design — a canvas plus a six-item list does not fit a phone screen, and
    pinning it there would clip the index. */
-@media (min-width: 901px){
+@media (min-width: 701px){
   .projects{
     height:calc(100vh - var(--nav-h)); max-height:calc(100vh - var(--nav-h)); padding:32px 0 24px;
     /* overflow VISIBLE, deliberately, despite the hard height above. Earth is
@@ -975,10 +981,10 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
    the bottom of the globe, which is the exact thing this is here to remove.
    The surplus over that is sky.
 
-   Desktop only. Below 900px the section is a scrolling column with the index
+   Desktop only. At 700px and below the section is a scrolling column with the index
    list flowing directly under the canvas, and a canvas 68% taller than its box
    would simply cover it. */
-@media (min-width: 901px){
+@media (min-width: 701px){
   /* Lift the scene into the open sky above Projects. The section itself is
      overflow-visible, so the Moon can align with the section eyebrow without
      clipping at the canvas's former top edge. */
@@ -1627,7 +1633,7 @@ section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
   font-family:var(--mono); font-size:14px; line-height:1.6; color:var(--bone);
   text-transform:none; white-space:pre;
 }
-@media(max-width:900px){
+@media(max-width:700px){
   #cbf-canvas{ height:300px; }
   .cbf-view-label span{ display:none; }
   .cbf-legend{ font-size:11px; gap:4px; }
@@ -1764,11 +1770,15 @@ footer{
 /* About's three columns are two fixed widths either side of a flexible middle,
    so the middle is what absorbs every pixel the viewport loses. At the full
    420/230 the bio column falls to ~260px by 1100px wide and ~160px by 1000px —
-   unreadable, and well above the 900px stacking breakpoint that would have
+   unreadable, and well above the phone-only stacking breakpoint that would have
    rescued it. Narrowing the two fixed columns keeps all three in play down to
    the stack. */
 @media (max-width: 1200px){
   .about-grid{ grid-template-columns:280px minmax(0,1fr) 180px; gap:32px; }
+  .terragator-body, .communigator-body{
+    grid-template-columns:minmax(160px,220px) minmax(0,1fr) minmax(150px,210px);
+    gap:24px;
+  }
   .marquee-v{ height:400px; }
   .skill-tag{ font-size:13px; padding:9px 16px 9px 13px; gap:9px; }
   .skill-ico{ width:19px; height:19px; }
@@ -1779,7 +1789,7 @@ footer{
   .hero-left{ flex:0 0 42%; padding:0 40px; }
   .hero-left::before{ left:24px; }
 }
-@media (max-width: 900px){
+@media (max-width: 700px){
   /* No descent on the stacked layout. There is too little vertical room to
      give a horizon a quarter of it, and About's stacked content would end up
      sitting on top of a solid planet. The scene goes back to covering the hero
@@ -1955,9 +1965,97 @@ footer{
   .meteor{ display:none; }
 }
 
-/* Phone/tablet composition. Keep this query in sync with COMPACT_LAYOUT in
-   main.js and the scenes. Text occupies its own rows, never the model stage. */
-@media (max-width:1239px), (hover:none) and (max-width:1400px){
+/* Short laptop composition. Keep the desktop structure intact; only tighten
+   its vertical rhythm so every homepage section still fits between the nav
+   and the bottom of a short screen. Phone stacking begins below this block. */
+@media (min-width:701px) and (max-height:820px){
+  .hero-left{ padding-left:clamp(24px,3.4vw,48px); padding-right:clamp(24px,3.4vw,48px); }
+  .hero-left::before{ left:clamp(16px,2.4vw,32px); }
+  .hero-left .eyebrow{ margin-bottom:14px; }
+  .hero-name{ font-size:clamp(30px,3.6vw,46px); min-height:2em; }
+  .preferred-name{ margin-top:7px; font-size:12px; }
+  .hero-title{ margin-top:9px; font-size:14px; line-height:1.4; }
+  .hero-honors{ margin-top:7px; gap:4px 6px; font-size:9px; line-height:1.25; }
+  .hero-honors li{ padding:3px 6px; }
+  .hero-focus{ margin-top:7px; font-size:10px; }
+  .hero-status{ margin-top:12px; padding:7px 0; gap:6px 8px; font-size:9px; }
+  .links-row{ margin-top:12px; gap:7px; }
+  .btn-dark, .ghost-link{ height:32px; padding-left:11px; padding-right:11px; font-size:10px; }
+
+  .about{ padding:20px 0 24px; }
+  .about .eyebrow{ margin-bottom:12px; }
+  .about-grid{
+    grid-template-columns:clamp(220px,22vw,300px) minmax(0,1fr) clamp(140px,15vw,200px);
+    gap:clamp(20px,2.6vw,36px);
+  }
+  .about-plate{ max-width:300px; margin-left:0; }
+  .about-text{ font-size:clamp(11px,1.65vh,13px); line-height:1.45; }
+  .about-text p{ margin-bottom:8px; }
+  .about-text .lead{ margin-bottom:11px; font-size:clamp(13px,1.9vh,15px); }
+  .about-text .lead.about-intro{ font-size:clamp(11px,1.65vh,13px); }
+  .about-intro-lead{ font-size:clamp(13px,1.9vh,15px); }
+  .about-edu-row{ gap:14px; }
+  .about-edu{ margin-top:11px; padding-top:9px; }
+  .about-edu-label{ margin-bottom:6px; font-size:9px; }
+  .edu-row{ gap:2px; margin-bottom:6px; }
+  .edu-inst{ font-size:clamp(11px,1.6vh,13px); }
+  .edu-detail{ font-size:clamp(9px,1.25vh,10.5px); }
+  .coursework-short{ gap:8px; }
+  .marquee-v{ height:min(48vh,330px); }
+  .skill-tag{ font-size:11px; padding:7px 11px; }
+  .skill-ico{ width:17px; height:17px; }
+
+  .experience{ padding:20px 0 24px; }
+  .experience .eyebrow{ margin-bottom:12px; }
+  .exp-head{ padding:11px 0; gap:18px; }
+  .exp-role-block{ gap:2px; }
+  .exp-role{ font-size:18px; }
+  .exp-org{ font-size:11px; }
+  .exp-tag{ font-size:10px; }
+  .exp-date{ font-size:9px; }
+  .exp-highlights li{ font-size:11px; line-height:1.4; }
+  .exp-highlights li:last-child{ margin-bottom:12px; }
+}
+
+/* A very narrow laptop window still keeps the desktop composition. Reduce the
+   portrait/tools rails instead of stacking them, which gives the biography
+   enough line length without changing the page structure. */
+@media (min-width:701px) and (max-width:900px){
+  .about-grid{
+    grid-template-columns:clamp(150px,22vw,190px) minmax(0,1fr) clamp(90px,14vw,120px);
+    gap:16px;
+  }
+  .about-plate{ max-width:190px; }
+}
+
+/* On the same narrow range, short screens also tighten type and row rhythm. */
+@media (min-width:701px) and (max-width:900px) and (max-height:820px){
+  .about-text{ font-size:10.5px; line-height:1.35; }
+  .about-text .lead{ font-size:12px; margin-bottom:8px; }
+  .about-text .lead.about-intro{ font-size:10.5px; }
+  .about-intro-lead{ font-size:12px; }
+  .about-edu-row{ gap:10px; }
+  .about-edu{ margin-top:8px; padding-top:7px; }
+  .about-edu-label{ margin-bottom:4px; font-size:8px; }
+  .edu-row{ margin-bottom:4px; }
+  .edu-inst{ font-size:10.5px; }
+  .edu-detail{ font-size:8.5px; }
+  .skill-tag{ font-size:9px; padding:5px 7px; gap:5px; }
+  .skill-ico{ width:14px; height:14px; }
+
+  .experience{ padding:12px 0 16px; }
+  .experience .eyebrow{ margin-bottom:8px; }
+  .exp-row{ padding-left:12px; padding-right:12px; }
+  .exp-head{ grid-template-columns:40px 1fr auto; padding:8px 0; gap:12px; }
+  .exp-role{ font-size:16px; }
+  .exp-org{ font-size:10px; }
+  .exp-tag{ font-size:9px; }
+  .exp-date{ font-size:8px; }
+}
+
+/* Phone composition. Keep this query in sync with COMPACT_LAYOUT in main.js
+   and the homepage scenes. Text occupies its own rows on phones only. */
+@media (max-width:700px){
   .topnav{ padding-left:24px; padding-right:24px; }
   .navlinks{ position:relative; left:auto; top:auto; transform:none; gap:20px; }
   .navlinks a{ font-size:12px; min-height:44px; display:flex; align-items:center; }
