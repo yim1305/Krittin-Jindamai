@@ -18,7 +18,7 @@
        whenever style.css, main.js, or a scene module changes, in every HTML
        file that references it — see the matching tags in css/style.css and
        js/main.js and every projects/*.html. -->
-  <link rel="stylesheet" href="css/style.css?v=20260908d">
+  <link rel="stylesheet" href="css/style.css?v=20260908e">
 
   <!-- In <head> and render-blocking, deliberately. `pagereveal` fires before
        the document's first render, and on a page this size the browser can
@@ -126,16 +126,16 @@
       <canvas id="orbit-canvas"></canvas>
       <div class="orbit-labels" id="orbit-labels"></div>
 
-      <!-- Values here are read straight off the live scene each frame. They
-           live in the scene layer rather than in the hero copy so they stay
-           with the globe through the descent instead of scrolling away with
-           the name — the readout is the thread that ties the two sections
-           together, and `range` counts down as the camera comes in. -->
-      <div class="telemetry" id="telemetry">
-        <div class="tel-row"><span class="tel-k">cam az</span><span class="tel-v" data-tel="az">—</span></div>
-        <div class="tel-row"><span class="tel-k">cam el</span><span class="tel-v" data-tel="el">—</span></div>
-        <div class="tel-row"><span class="tel-k">range</span><span class="tel-v" data-tel="range">—</span></div>
-        <div class="tel-row"><span class="tel-k">track</span><span class="tel-v" data-tel="track">—</span></div>
+      <!-- Values here are read straight off the live scene each frame. On
+           laptops the wrapper places this instrument at Home's upper-right
+           and fades it before About; on phones it flows below the scene. -->
+      <div class="telemetry-wrap">
+        <div class="telemetry" id="telemetry">
+          <div class="tel-row"><span class="tel-k">cam az</span><span class="tel-v" data-tel="az">—</span></div>
+          <div class="tel-row"><span class="tel-k">cam el</span><span class="tel-v" data-tel="el">—</span></div>
+          <div class="tel-row"><span class="tel-k">range</span><span class="tel-v" data-tel="range">—</span></div>
+          <div class="tel-row"><span class="tel-k">track</span><span class="tel-v" data-tel="track">—</span></div>
+        </div>
       </div>
 
       <!-- Wrapped so the descent can fade the hint out once dragging hands

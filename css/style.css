@@ -484,13 +484,19 @@ section{ position:relative; z-index:1; }
 .cubesat-label.is-hot::before, .cubesat-label.is-hot::after,
 .cubesat-label:hover::before, .cubesat-label:hover::after{ opacity:1; }
 
-/* telemetry readout — driven from the live scene, not decoration */
+/* Telemetry readout — driven from the live scene, not decoration. On the
+   desktop/laptop composition it belongs to Home's upper-right instrument
+   corner, and fades before the sticky scene reaches About. Phones override
+   this below and keep it in the scene's normal document flow. */
+.telemetry-wrap{
+  position:absolute; top:24px; right:28px;
+  opacity:clamp(0, calc(1 - var(--descent, 0) * 5), 1);
+}
 .telemetry{
-  position:absolute; left:28px; bottom:24px;
   font-family:var(--mono); font-size:10px; letter-spacing:.02em; text-transform:uppercase;
   color:var(--graphite); pointer-events:none;
   display:flex; flex-direction:column; gap:5px;
-  border-left:1px solid var(--ash); padding-left:12px;
+  border-right:1px solid var(--ash); padding-right:12px;
   opacity:0; animation:fade-up 1s 1.9s var(--ease-out) forwards;
 }
 @keyframes fade-up{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
@@ -1988,7 +1994,11 @@ footer{
     grid-template-columns:clamp(220px,22vw,300px) minmax(0,1fr) clamp(140px,15vw,200px);
     gap:clamp(20px,2.6vw,36px);
   }
-  .about-plate{ max-width:300px; margin-left:0; }
+  /* The portrait's uncropped 548:900 ratio is unusually tall. Limit it to
+     60vh (36.54vh wide at that ratio) as well as the column width so it is
+     visibly smaller and cannot extend into the next section on short laptop
+     displays. */
+  .about-plate{ width:min(100%,36.54vh); max-width:300px; margin-left:0; }
   .about-text{ font-size:clamp(11px,1.65vh,13px); line-height:1.45; }
   .about-text p{ margin-bottom:8px; }
   .about-text .lead{ margin-bottom:11px; font-size:clamp(13px,1.9vh,15px); }
@@ -2083,7 +2093,8 @@ footer{
     white-space:normal; overflow-wrap:anywhere; font-size:12px; border-color:var(--ash);
   }
   .hero-right .cubesat-label::before, .hero-right .cubesat-label::after{ display:none; }
-  .hero-right .telemetry{ position:static; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; border-left:0; border-top:1px solid var(--ash); padding:14px 0 0; opacity:1; animation:none; }
+  .hero-right .telemetry-wrap{ position:static; opacity:1; }
+  .hero-right .telemetry{ position:static; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; border-left:0; border-right:0; border-top:1px solid var(--ash); padding:14px 0 0; opacity:1; animation:none; }
   .hero-right .tel-row{ min-width:0; flex-wrap:wrap; gap:4px 8px; }
   .hero-right .tel-row:last-child{ grid-column:1 / -1; }
   .hero-right .tel-v{ overflow-wrap:anywhere; }
